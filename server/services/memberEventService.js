@@ -53,7 +53,7 @@ const registerForEvent = async (eventId, memberId, memberInfo = {}) => {
         }
 
         // 5. Handle Free Event vs Paid Event
-        if (event.registration.isFree) {
+        if (!event.isPaid) {
             // FREE EVENT REGISTRATION
             event.registrations.push({
                 member: memberId,
@@ -73,7 +73,7 @@ const registerForEvent = async (eventId, memberId, memberInfo = {}) => {
 
             return {
                 success: true,
-                isFree: true,
+                isPaid: false,
                 message: 'Registration successful!',
                 event: {
                     id: event._id,
@@ -83,13 +83,8 @@ const registerForEvent = async (eventId, memberId, memberInfo = {}) => {
         } else {
             // PAID EVENT REGISTRATION - Initiate Payment Flow
 
-            // Calculate amount (handle early bird)
-            let amount = event.registration.fee;
-            const isEarlyBird = event.registration.earlyBirdDeadline && now <= event.registration.earlyBirdDeadline;
-
-            if (isEarlyBird && event.registration.earlyBirdFee !== undefined) {
-                amount = event.registration.earlyBirdFee;
-            }
+            // Calculate amount
+            let amount = event.price;
 
             // Create Razorpay order
             const receipt = `EVT_REG_${eventId}_${memberId}_${Date.now()}`;
@@ -119,7 +114,7 @@ const registerForEvent = async (eventId, memberId, memberInfo = {}) => {
 
             return {
                 success: true,
-                isFree: false,
+                isPaid: true,
                 message: 'Payment required to complete registration',
                 order: {
                     id: order.id,

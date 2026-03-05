@@ -59,27 +59,23 @@ exports.createEventValidationRules = [
     .notEmpty().withMessage('Max capacity is required')
     .isInt({ min: 1 }).withMessage('Capacity must be at least 1'),
 
-  body('registration.isFree')
+  body('isPaid')
     .optional()
-    .isBoolean().withMessage('isFree must be a boolean'),
+    .isBoolean().withMessage('isPaid must be a boolean'),
 
-  body('registration.fee')
-    .if(body('registration.isFree').equals('false'))
-    .notEmpty().withMessage('Registration fee is required for paid events')
-    .isFloat({ min: 0 }).withMessage('Fee cannot be negative'),
+  body('price')
+    .if(body('isPaid').equals('true'))
+    .notEmpty().withMessage('Price is required for paid events')
+    .isFloat({ min: 0 }).withMessage('Price cannot be negative'),
 
-  body('registration.fee')
-    .if(body('registration.isFree').equals('true'))
+  body('price')
+    .if(body('isPaid').equals('false'))
     .custom((value, { req }) => {
       if (value !== undefined && value !== 0) {
-        throw new Error('Fee must be 0 for free events');
+        throw new Error('Price must be 0 for free events');
       }
       return true;
     }),
-
-  body('registration.earlyBirdFee')
-    .optional()
-    .isFloat({ min: 0 }).withMessage('Early bird fee cannot be negative'),
 
   // Organizer
   body('organizer.contactPerson')
@@ -172,13 +168,13 @@ exports.updateEventValidationRules = [
     .optional()
     .isInt({ min: 1 }).withMessage('Capacity must be at least 1'),
 
-  body('registration.fee')
+  body('isPaid')
     .optional()
-    .isFloat({ min: 0 }).withMessage('Fee cannot be negative'),
+    .isBoolean().withMessage('isPaid must be boolean'),
 
-  body('registration.earlyBirdFee')
+  body('price')
     .optional()
-    .isFloat({ min: 0 }).withMessage('Early bird fee cannot be negative'),
+    .isFloat({ min: 0 }).withMessage('Price cannot be negative'),
 
   // Organizer (optional)
   body('organizer.contactEmail')

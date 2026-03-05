@@ -74,6 +74,15 @@ const eventSchema = new mongoose.Schema(
       },
     },
 
+    isPaid: {
+      type: Boolean,
+      default: false,
+    },
+    price: {
+      type: Number,
+      default: 0,
+    },
+
     // Registration Settings
     registration: {
       isOpen: {
@@ -93,22 +102,6 @@ const eventSchema = new mongoose.Schema(
         type: Number,
         default: 0,
         min: 0,
-      },
-      isFree: {
-        type: Boolean,
-        default: false,
-      },
-      fee: {
-        type: Number,
-        required: function () { return !this.registration.isFree; },
-        min: [0, 'Fee cannot be negative'],
-      },
-      earlyBirdFee: {
-        type: Number,
-        min: 0,
-      },
-      earlyBirdDeadline: {
-        type: Date,
       },
     },
 

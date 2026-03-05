@@ -51,7 +51,8 @@ export default function Events() {
         city: '',
         maxCapacity: 100,
         registrationDeadline: '',
-        fee: 0,
+        isPaid: false,
+        price: 0,
         contactPerson: '',
         contactEmail: '',
         contactPhone: '',
@@ -105,7 +106,8 @@ export default function Events() {
                 city: ev.venue?.city || '',
                 maxCapacity: ev.registration?.maxCapacity || 100,
                 registrationDeadline: ev.registration?.deadline?.split('T')[0] || '',
-                fee: ev.registration?.fee || 0,
+                isPaid: ev.isPaid || false,
+                price: ev.price || 0,
                 contactPerson: ev.organizer?.contactPerson || '',
                 contactEmail: ev.organizer?.contactEmail || '',
                 contactPhone: ev.organizer?.contactPhone || '',
@@ -179,9 +181,10 @@ export default function Events() {
                 },
                 registration: {
                     deadline: eventForm.registrationDeadline,
-                    maxCapacity: eventForm.maxCapacity,
-                    fee: eventForm.fee
+                    maxCapacity: eventForm.maxCapacity
                 },
+                isPaid: eventForm.isPaid,
+                price: eventForm.isPaid ? eventForm.price : 0,
                 organizer: {
                     contactPerson: eventForm.contactPerson,
                     contactEmail: eventForm.contactEmail,
@@ -335,7 +338,7 @@ export default function Events() {
                             setEventForm({
                                 title: '', description: '', eventType: 'Workshop', startDate: '', endDate: '',
                                 startTime: '10:00', endTime: '17:00', venueName: '', venueAddress: '', city: '',
-                                maxCapacity: 100, registrationDeadline: '', fee: 0, contactPerson: '', contactEmail: '', contactPhone: '',
+                                maxCapacity: 100, registrationDeadline: '', isPaid: false, price: 0, contactPerson: '', contactEmail: '', contactPhone: '',
                             });
                             setIsEventModalOpen(true);
                         }}
@@ -587,9 +590,18 @@ export default function Events() {
                                     <input required type="date" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all" value={eventForm.registrationDeadline} onChange={e => setEventForm({ ...eventForm, registrationDeadline: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Fee (₹)</label>
-                                    <input required type="number" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all" value={eventForm.fee} onChange={e => setEventForm({ ...eventForm, fee: parseFloat(e.target.value) })} />
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Payment Type</label>
+                                    <select required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all" value={eventForm.isPaid ? 'Paid' : 'Free'} onChange={e => setEventForm({ ...eventForm, isPaid: e.target.value === 'Paid', price: e.target.value === 'Free' ? 0 : eventForm.price })}>
+                                        <option value="Free">Free Event</option>
+                                        <option value="Paid">Paid Event (Requires Payment Gateway)</option>
+                                    </select>
                                 </div>
+                                {eventForm.isPaid && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Price (₹)</label>
+                                        <input required type="number" min="1" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all" value={eventForm.price || ''} onChange={e => setEventForm({ ...eventForm, price: parseFloat(e.target.value) || 0 })} />
+                                    </div>
+                                )}
                                 <div className="md:col-span-2 border-t border-slate-100 pt-6 mt-4">
                                     <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4">Organizer Details</h4>
                                 </div>

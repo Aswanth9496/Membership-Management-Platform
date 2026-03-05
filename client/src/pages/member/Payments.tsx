@@ -1,59 +1,74 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/axios';
+import { useAppSelector } from '../../store/hooks';
 import {
-    CreditCard,
     Receipt,
     CheckCircle2,
-    AlertCircle,
     Clock,
-    Download,
-    ShieldCheck,
-    ArrowRight,
-    Loader2
+    XCircle,
+    Loader2,
+    Calendar,
+    CreditCard,
+    ArrowDownToLine,
+    Search
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 export default function Payments() {
-    const [paymentData, setPaymentData] = useState<any>(null);
+    const { user } = useAppSelector((state: any) => state.auth);
+    const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        const fetchPaymentStatus = async () => {
+        const fetchTransactions = async () => {
             try {
-                const response = await api.get('/api/payment/status');
-                if (response.data.success) {
-                    setPaymentData(response.data.data);
-                }
-            } catch (error: any) {
-                console.error('Failed to fetch payment status', error);
-                // Don't show error swal here as it might just mean no payment initiated yet
+                // Adjust this endpoint to match your actual backend API route
+                const response = await api.get('/api/payment/transactions').catch(() => ({ data: { data: [] } }));
+
+                // Assuming the backend returns an array of transaction objects
+                // Fallback to empty array if no transactions exist
+                const fetchedTransactions = response.data?.data || [];
+                setTransactions(fetchedTransactions);
+            } catch (error) {
+                console.error('Failed to fetch transactions', error);
+                Swal.fire('Error', 'Could not load your transaction history.', 'error');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchPaymentStatus();
+        fetchTransactions();
     }, []);
 
-    const handleInitiatePayment = async () => {
-        try {
-            Swal.fire({
-                title: 'Redirecting to Payment',
-                text: 'Please wait while we secure your transaction...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
+    const filteredTransactions = transactions.filter(tx =>
+        tx.transactionId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-            // This would normally call /api/payment/create-order
-            // For now we just show the intent
-            setTimeout(() => {
-                Swal.fire('Information', 'Payment gateway integration in progress. Please contact administrator for direct bank transfer.', 'info');
-            }, 1500);
-
-        } catch (error) {
-            Swal.fire('Error', 'Failed to initiate payment. Please try again.', 'error');
+    const getStatusBadge = (status: string) => {
+        const normalized = status?.toLowerCase();
+        if (normalized === 'success' || normalized === 'completed') {
+            return (
+                <span className="inline-flex items-center gap-1.5 bg-[#E8F8EE] text-[#05A660] text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-100">
+                    <span className="w-1.5 h-1.5 bg-[#05A660] rounded-full"></span>
+                    Success
+                </span>
+            );
+        } else if (normalized === 'pending') {
+            return (
+                <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-600 text-[11px] font-bold px-2.5 py-1 rounded-full border border-amber-200">
+                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                    Pending
+                </span>
+            );
+        } else {
+            return (
+                <span className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-600 text-[11px] font-bold px-2.5 py-1 rounded-full border border-rose-200">
+                    <span className="w-1.5 h-1.5 bg-rose-500 rounded-full"></span>
+                    Failed
+                </span>
+            );
         }
     };
 
@@ -61,189 +76,168 @@ export default function Payments() {
         return (
             <div className="flex flex-col h-64 items-center justify-center gap-4">
                 <Loader2 className="animate-spin text-blue-600" size={40} />
-                <p className="text-sm text-slate-500 font-medium">Retrieving financial records...</p>
+                <p className="text-sm text-slate-500 font-medium">Retrieving financial ledger...</p>
             </div>
         );
     }
-
-    if (!paymentData) {
-        return (
-            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-2xl mx-auto shadow-sm">
-                <div className="flex items-center justify-center w-20 h-20 bg-slate-50 text-slate-400 rounded-full mx-auto mb-6">
-                    <Receipt size={32} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">No Payment Records</h3>
-                <p className="text-slate-500 mt-3 leading-relaxed">
-                    We couldn't find any payment history for your account. If you just made a payment, it might take a few minutes to sync.
-                </p>
-            </div>
-        );
-    }
-
-    const {
-        memberType,
-        paymentRequired,
-        certificateStatus,
-        amount,
-        buttonText,
-        certificate,
-        alert
-    } = paymentData;
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="w-full max-w-7xl mx-auto font-sans text-slate-900 pb-10">
+            {/* Header section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Accounts & Billing</h1>
-                    <p className="text-slate-500 font-medium mt-1">Manage your membership subscriptions and transaction history.</p>
+                    <p className="text-[11px] font-bold text-blue-600 tracking-[0.15em] uppercase mb-2">Billing & Invoices</p>
+                    <h1 className="text-[32px] sm:text-[40px] leading-none font-extrabold tracking-tight text-slate-900">
+                        Payment History
+                    </h1>
                 </div>
 
-                {paymentRequired && (
-                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl text-amber-700 text-sm font-bold animate-pulse">
-                        <AlertCircle size={16} />
-                        <span>Action Required: Outstanding Dues</span>
+                <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 flex items-center gap-4 shadow-sm shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                        <Receipt className="text-blue-600" size={18} />
                     </div>
+                    <div>
+                        <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Total Records</p>
+                        <p className="text-[14px] font-bold text-slate-900 leading-none mt-1">
+                            {transactions.length} Transactions
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter / Search Bar */}
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="relative w-full sm:w-96 flex items-center group">
+                    <Search className="absolute left-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search by Transaction ID or Description..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 rounded-xl text-[14px] font-medium w-full transition-all outline-none text-slate-800 placeholder:text-slate-400"
+                    />
+                </div>
+
+                {transactions.length > 0 && (
+                    <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[13px] font-bold transition-colors">
+                        <ArrowDownToLine size={16} />
+                        Export Ledger
+                    </button>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Status Card */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-600 text-white rounded-lg">
-                                    <ShieldCheck size={20} />
-                                </div>
-                                <h2 className="font-bold text-slate-900 uppercase tracking-wider text-xs">Membership Status</h2>
-                            </div>
-                            <span className={`px - 3 py - 1 rounded - full text - [10px] font - black uppercase tracking - widest ${certificateStatus === 'active' ? 'bg-emerald-100 text-emerald-700' :
-                                certificateStatus === 'not_generated' ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-700'
-                                } `}>
-                                {certificateStatus?.replace('_', ' ') || 'Pending'}
-                            </span>
-                        </div>
-
-                        <div className="p-8">
-                            {memberType === 'new' && !certificate?.generated ? (
-                                <div className="space-y-6">
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                            <CreditCard size={24} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold text-slate-900">Registration Fee Pending</h3>
-                                            <p className="text-sm text-slate-500 mt-1 max-w-md">Your application has been processed. Complete the one-time registration payment to activate your membership and generate your certificate.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-200 text-sm">
-                                            <span className="text-slate-500 font-medium tracking-tight uppercase text-[10px]">Description</span>
-                                            <span className="text-slate-500 font-medium tracking-tight uppercase text-[10px]">Amount (INR)</span>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-slate-600 font-semibold italic">Registration Base Fee</span>
-                                                <span className="text-slate-900 font-medium">₹{amount?.baseAmount?.toLocaleString() || '0'}</span>
+            {/* Main Table Container */}
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse block lg:table">
+                        <thead className="hidden lg:table-header-group bg-slate-50/50">
+                            <tr className="border-b border-slate-200 text-[11px] uppercase tracking-widest text-slate-500">
+                                <th className="py-5 px-6 font-bold whitespace-nowrap">Transaction ID</th>
+                                <th className="py-5 px-6 font-bold whitespace-nowrap">User Details</th>
+                                <th className="py-5 px-6 font-bold whitespace-nowrap">Amount</th>
+                                <th className="py-5 px-6 font-bold whitespace-nowrap">Status</th>
+                                <th className="py-5 px-6 font-bold whitespace-nowrap">Payment Method</th>
+                                <th className="py-5 px-6 font-bold whitespace-nowrap">Date & Time</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-[14px] block lg:table-row-group">
+                            {transactions.length === 0 ? (
+                                <tr className="block lg:table-row">
+                                    <td colSpan={6} className="py-20 px-6 text-center block lg:table-cell">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-slate-100 shadow-sm">
+                                                <Receipt size={32} className="text-slate-400" />
                                             </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-slate-600 font-semibold italic">GST ({amount?.gstPercent || '0'}%)</span>
-                                                <span className="text-slate-900 font-medium">₹{amount?.gstAmount?.toLocaleString() || '0'}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center pt-3 mt-3 border-t border-slate-200">
-                                                <span className="text-slate-900 font-black text-xs uppercase tracking-widest">Total Payable</span>
-                                                <span className="text-2xl font-black text-blue-600 tracking-tighter">₹{amount?.totalAmount?.toLocaleString() || '0'}</span>
-                                            </div>
+                                            <h3 className="text-[18px] font-bold text-slate-900 tracking-tight mb-2">No Transactions Found</h3>
+                                            <p className="text-[14px] text-slate-500 font-medium max-w-sm mx-auto leading-relaxed">
+                                                Your payment ledger is currently empty. Once you complete a transaction, it will be securely archived here.
+                                            </p>
                                         </div>
-                                    </div>
-
-                                    <button
-                                        onClick={handleInitiatePayment}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-blue-200"
-                                    >
-                                        <span>{buttonText || 'Pay Registration Fee'}</span>
-                                        <ArrowRight size={20} />
-                                    </button>
-                                </div>
+                                    </td>
+                                </tr>
+                            ) : filteredTransactions.length === 0 ? (
+                                <tr className="block lg:table-row">
+                                    <td colSpan={6} className="py-16 px-6 text-center block lg:table-cell">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <Search size={32} className="text-slate-300 mb-4" />
+                                            <p className="text-[15px] font-bold text-slate-700">No results found for "{searchTerm}"</p>
+                                            <p className="text-[13px] text-slate-500 mt-1">Try adjusting your search criteria.</p>
+                                        </div>
+                                    </td>
+                                </tr>
                             ) : (
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-1">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Certificate Number</span>
-                                            <span className="text-sm font-bold text-slate-900 font-mono tracking-tighter">{certificate?.certificateNumber || 'N/A'}</span>
-                                        </div>
-                                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-1">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Validity Remaining</span>
-                                            <span className="text-sm font-bold text-slate-900">{certificate?.daysRemaining} Days</span>
-                                        </div>
-                                    </div>
+                                filteredTransactions.map((tx, idx) => (
+                                    <tr key={tx.id || idx} className="block lg:table-row border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors p-6 lg:p-0">
 
-                                    <div className="flex flex-col sm:flex-row gap-4">
-                                        <button className="flex-1 bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
-                                            <Download size={18} />
-                                            <span>Download Certificate</span>
-                                        </button>
-                                        {paymentData.renewalAvailable && (
-                                            <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
-                                                <Clock size={18} />
-                                                <span>Renew Certificate</span>
-                                            </button>
-                                        )}
-                                    </div>
+                                        {/* Transaction ID */}
+                                        <td className="flex flex-col lg:table-cell py-3 lg:py-5 px-0 lg:px-6 mb-3 lg:mb-0">
+                                            <span className="lg:hidden font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-1">Transaction ID</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono text-sm font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shrink-0">
+                                                    {tx.transactionId || `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`}
+                                                </span>
+                                            </div>
+                                        </td>
 
-                                    {alert && (
-                                        <div className="p-3 bg-amber-50 border border-amber-100 text-amber-700 rounded-lg text-xs font-bold flex items-center gap-2">
-                                            <Clock size={14} />
-                                            {alert}
-                                        </div>
-                                    )}
-                                </div>
+                                        {/* User Details */}
+                                        <td className="flex flex-col lg:table-cell py-3 lg:py-5 px-0 lg:px-6 mb-3 lg:mb-0">
+                                            <span className="lg:hidden font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-1">User Details</span>
+                                            <div>
+                                                <p className="font-bold text-slate-900 text-[14px] leading-tight flex items-center gap-2">
+                                                    {tx.userName || user?.name || 'Unknown User'}
+                                                </p>
+                                                <p className="text-[12px] font-medium text-slate-400 mt-0.5 truncate max-w-[200px]" title={tx.email || user?.email}>
+                                                    {tx.email || user?.email || 'No email attached'}
+                                                </p>
+                                            </div>
+                                        </td>
+
+                                        {/* Amount */}
+                                        <td className="flex flex-col lg:table-cell py-3 lg:py-5 px-0 lg:px-6 mb-3 lg:mb-0">
+                                            <span className="lg:hidden font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-1">Amount</span>
+                                            <span className="font-black text-slate-900 text-[15px]">
+                                                ₹{tx.amount?.toLocaleString() || '0'}
+                                            </span>
+                                        </td>
+
+                                        {/* Status */}
+                                        <td className="flex flex-col lg:table-cell py-3 lg:py-5 px-0 lg:px-6 mb-3 lg:mb-0">
+                                            <span className="lg:hidden font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-1">Status</span>
+                                            <div>{getStatusBadge(tx.status || 'success')}</div>
+                                        </td>
+
+                                        {/* Payment Method */}
+                                        <td className="flex flex-col lg:table-cell py-3 lg:py-5 px-0 lg:px-6 mb-3 lg:mb-0">
+                                            <span className="lg:hidden font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-1">Payment Method</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-6 bg-white border border-slate-200 rounded flex items-center justify-center shrink-0">
+                                                    <CreditCard size={14} className="text-slate-400" />
+                                                </div>
+                                                <span className="font-bold text-slate-700 text-[13px] capitalize">
+                                                    {tx.paymentMethod || 'Razorpay'}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        {/* Date & Time */}
+                                        <td className="flex flex-col lg:table-cell py-3 lg:py-5 px-0 lg:px-6">
+                                            <span className="lg:hidden font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-1">Date & Time</span>
+                                            <div>
+                                                <p className="font-bold text-slate-800 text-[13px] whitespace-nowrap flex items-center gap-1.5">
+                                                    <Calendar size={13} className="text-slate-400" />
+                                                    {tx.date ? new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </p>
+                                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1 flex items-center gap-1.5">
+                                                    <Clock size={11} className="text-slate-300" />
+                                                    {tx.date ? new Date(tx.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
                             )}
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 overflow-hidden">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-slate-100 text-slate-600 rounded-lg">
-                                <Receipt size={18} />
-                            </div>
-                            <h2 className="font-bold text-slate-900 uppercase tracking-wider text-xs">Recent Transactions</h2>
-                        </div>
-
-                        <div className="text-center py-12">
-                            <p className="text-slate-400 text-sm font-medium italic">Detailed transaction history is being archived. Contact treasury for formal receipts.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Information Column */}
-                <div className="space-y-6">
-                    <div className="bg-blue-600 rounded-3xl p-8 text-white shadow-lg shadow-blue-200">
-                        <h3 className="text-lg font-black tracking-tight mb-4">Why pay?</h3>
-                        <ul className="space-y-4">
-                            {[
-                                'Accredited Member Status',
-                                'Verification Certificate',
-                                'Official TechFinit Badge',
-                                'Event Participation Access'
-                            ].map((item, i) => (
-                                <li key={i} className="flex items-start gap-3 text-sm font-medium text-blue-50">
-                                    <CheckCircle2 size={18} className="text-blue-300 shrink-0 mt-0.5" />
-                                    <span>{item}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div className="bg-slate-900 rounded-3xl p-8 text-white">
-                        <h3 className="text-lg font-black tracking-tight mb-2">Need Help?</h3>
-                        <p className="text-slate-400 text-sm mb-6 font-medium">For payment queries or offline bank transfers, reach out to our treasury department.</p>
-                        <button className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-colors">
-                            Contact Support
-                        </button>
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

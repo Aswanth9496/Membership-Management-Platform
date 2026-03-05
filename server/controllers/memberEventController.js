@@ -12,7 +12,7 @@ const registerForEventController = async (req, res) => {
 
     const result = await registerForEvent(eventId, memberId, memberInfo);
 
-    if (result.isFree) {
+    if (!result.isPaid) {
         return successResponse(
             res,
             result,

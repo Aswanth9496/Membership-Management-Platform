@@ -27,6 +27,7 @@ import MemberMembership from '../pages/member/Membership';
 import MemberCertificate from '../pages/member/Certificate';
 import MemberEvents from '../pages/member/Events';
 import MemberProfile from '../pages/member/Profile';
+import MemberPayments from '../pages/member/Payments';
 
 
 export const Routes = () => {
@@ -86,6 +87,7 @@ export const Routes = () => {
           <Route path="/certificate" element={<MemberCertificate />} />
           <Route path="/events" element={<MemberEvents />} />
           <Route path="/profile" element={<MemberProfile />} />
+          <Route path="/payments" element={<MemberPayments />} />
         </Route>
 
         {/* --- ADMIN SECTION --- */}

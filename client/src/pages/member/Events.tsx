@@ -23,9 +23,11 @@ interface Event {
     endTime: string;
     venueName: string;
     city: string;
-    fee: number;
+    isPaid: boolean;
+    price: number;
     capacity: number;
     registered: number;
+    registrationDeadline?: string;
     status: string;
 }
 
@@ -69,11 +71,13 @@ export default function Events() {
                 endTime: ev.eventDate?.endTime,
                 venueName: ev.venue?.name,
                 city: ev.venue?.city,
-                fee: ev.registration?.fee || 0,
+                isPaid: ev.isPaid || false,
+                price: ev.price || 0,
                 capacity: ev.registration?.maxCapacity || 0,
                 registered: ev.registration?.currentCount || 0,
+                registrationDeadline: ev.registration?.deadline,
                 status: ev.status
-            }));
+            })).sort((a: any, b: any) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
 
             const registeredIds = (myEventsResp.data.data.events || []).map((ev: any) => ev.id || ev._id);
 
@@ -113,7 +117,7 @@ export default function Events() {
             const response = await api.post(`/api/member/events/register/${event.id}`, formData);
             const data = response.data.data;
 
-            if (data.isFree) {
+            if (!data.isPaid) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Registered Successfully!',
@@ -267,8 +271,18 @@ export default function Events() {
                         const isRegistering = registrationLoading === event.id;
                         const isFull = event.registered >= event.capacity;
 
+                        const currentDate = new Date().getTime();
+
+                        // Treat event as ended if endDate (or loosely startDate bounds) has been exceeded
+                        const endTime = event.endDate ? new Date(event.endDate).getTime() : new Date(event.startDate).getTime() + (24 * 60 * 60 * 1000);
+                        const isEnded = endTime < currentDate;
+
+                        // Treat registration as closed if deadline strictly passed
+                        const deadlineTime = event.registrationDeadline ? new Date(event.registrationDeadline).getTime() : new Date(event.startDate).getTime();
+                        const isRegistrationClosed = deadlineTime <= currentDate;
+
                         return (
-                            <div key={event.id} className="bg-white border border-slate-200 rounded-[20px] overflow-hidden shadow-sm flex flex-col group hover:shadow-md transition-shadow">
+                            <div key={event.id} className={`bg-white border border-slate-200 rounded-[20px] overflow-hidden shadow-sm flex flex-col group transition-shadow ${isEnded ? 'opacity-70 grayscale-[0.2]' : 'hover:shadow-md'}`}>
                                 <div className={`h-[140px] bg-gradient-to-br ${bgGradient} relative p-4 flex flex-col justify-between items-start`}>
                                     <div className="absolute top-4 right-4 bg-white rounded-lg flex flex-col items-center justify-center w-[46px] h-[52px] shadow-sm">
                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-[-2px]">{getMonthShort(event.startDate)}</span>
@@ -278,14 +292,27 @@ export default function Events() {
                                         <span className="bg-white/20 backdrop-blur-md text-white border border-white/30 text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md shadow-sm">
                                             {event.eventType || 'Event'}
                                         </span>
+                                        {isEnded && (
+                                            <span className="bg-rose-500/90 text-white border border-rose-600/50 text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md shadow-sm">
+                                                Ended
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="p-5 flex flex-col flex-1">
                                     <div className="flex justify-between items-start mb-2 gap-2">
                                         <h3 className="font-bold text-[16px] leading-snug line-clamp-2">{event.title}</h3>
-                                        <div className="bg-slate-50 text-slate-700 text-xs font-bold px-2 py-1 rounded-md shrink-0 border border-slate-200">
-                                            {event.fee > 0 ? `₹${event.fee}` : 'Free'}
-                                        </div>
+                                        {event.isPaid ? (
+                                            <div className="flex items-center gap-1.5 bg-blue-50 text-blue-600 text-xs font-black px-2.5 py-1 rounded-md shrink-0 border border-blue-200 tracking-widest">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                Paid - ₹{event.price}
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-1.5 bg-[#E8F8EE] text-[#05A660] text-xs font-black px-2.5 py-1 rounded-md shrink-0 border border-emerald-200 tracking-widest">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-[#05A660]"></span>
+                                                Free
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center gap-2 text-slate-500 text-[13px] font-medium mb-3">
@@ -303,10 +330,18 @@ export default function Events() {
                                             {event.registered}/{event.capacity} Filled
                                         </div>
                                         <div>
-                                            {isRegistered ? (
+                                            {isEnded ? (
+                                                <button disabled className="bg-rose-50 border border-rose-100 text-rose-600 font-bold text-[13px] py-2 px-4 rounded-xl cursor-not-allowed">
+                                                    Event Ended
+                                                </button>
+                                            ) : isRegistered ? (
                                                 <button disabled className="bg-[#E8F8EE] text-[#05A660] font-bold text-[13px] py-2 px-4 rounded-xl flex items-center gap-1.5 cursor-default">
                                                     <CheckCircle2 size={16} />
                                                     Registered
+                                                </button>
+                                            ) : isRegistrationClosed ? (
+                                                <button disabled title="Registration deadline has passed" className="bg-slate-100 text-slate-400 font-bold text-[13px] py-2 px-4 rounded-xl cursor-not-allowed">
+                                                    Registration Closed
                                                 </button>
                                             ) : isFull ? (
                                                 <button disabled className="bg-slate-100 text-slate-400 font-bold text-[13px] py-2 px-4 rounded-xl cursor-not-allowed">

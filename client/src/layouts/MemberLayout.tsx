@@ -55,8 +55,7 @@ export const MemberLayout = () => {
         { to: '/events', icon: <Calendar size={20} />, label: 'Events' },
         { to: '/membership', icon: <Briefcase size={20} />, label: 'Membership' },
         { to: '/certificate', icon: <FileText size={20} />, label: 'Certificate' },
-        { to: '/payments', icon: <CreditCard size={20} />, label: 'Payments' },
-        { to: '/resources', icon: <BookOpen size={20} />, label: 'Resources' },
+        { to: '/payments', icon: <CreditCard size={20} />, label: 'Payments' }
     ];
 
     const fullName = profile?.fullName || user?.name || 'Alex Johnson';

@@ -38,15 +38,17 @@ const createEvent = async (eventData, adminId) => {
       throw new ApiError(409, 'An event with the same title and start date already exists.');
     }
 
-    // Handle Free Event Logic
-    const isFree = eventData.registration.isFree === true || eventData.registration.isFree === 'true';
-    const fee = isFree ? 0 : eventData.registration.fee;
+    // Handle Payment Type Logic
+    const isPaid = eventData.isPaid === true || eventData.isPaid === 'true';
+    const price = isPaid ? (eventData.price || 0) : 0;
 
     // Create event object
     const newEvent = new Event({
       title: eventData.title,
       description: eventData.description,
       eventType: eventData.eventType,
+      isPaid: isPaid,
+      price: price,
 
       eventDate: {
         startDate: eventData.eventDate.startDate,
@@ -66,12 +68,8 @@ const createEvent = async (eventData, adminId) => {
 
       registration: {
         isOpen: eventData.registration.isOpen !== undefined ? eventData.registration.isOpen : true,
-        isFree: isFree,
         deadline: eventData.registration.deadline,
         maxCapacity: eventData.registration.maxCapacity,
-        fee: fee,
-        earlyBirdFee: isFree ? 0 : (eventData.registration.earlyBirdFee || null),
-        earlyBirdDeadline: eventData.registration.earlyBirdDeadline || null,
       },
 
       organizer: {
@@ -195,22 +193,17 @@ const updateEvent = async (eventId, updateData) => {
       if (updateData.registration.isOpen !== undefined) event.registration.isOpen = updateData.registration.isOpen;
       if (updateData.registration.deadline) event.registration.deadline = updateData.registration.deadline;
       if (updateData.registration.maxCapacity) event.registration.maxCapacity = updateData.registration.maxCapacity;
+    }
 
-      if (updateData.registration.isFree !== undefined) {
-        event.registration.isFree = updateData.registration.isFree === true || updateData.registration.isFree === 'true';
-      }
+    // Update payment parameters
+    if (updateData.isPaid !== undefined) {
+      event.isPaid = updateData.isPaid === true || updateData.isPaid === 'true';
+    }
 
-      const currentIsFree = event.registration.isFree;
-
-      if (currentIsFree) {
-        event.registration.fee = 0;
-        event.registration.earlyBirdFee = 0;
-      } else {
-        if (updateData.registration.fee !== undefined) event.registration.fee = updateData.registration.fee;
-        if (updateData.registration.earlyBirdFee !== undefined) event.registration.earlyBirdFee = updateData.registration.earlyBirdFee;
-      }
-
-      if (updateData.registration.earlyBirdDeadline !== undefined) event.registration.earlyBirdDeadline = updateData.registration.earlyBirdDeadline;
+    if (event.isPaid) {
+      if (updateData.price !== undefined) event.price = updateData.price;
+    } else {
+      event.price = 0;
     }
 
     // Update organizer
