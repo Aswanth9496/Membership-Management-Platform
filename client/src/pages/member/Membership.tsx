@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppSelector } from '../../store/hooks';
-import api from '../../services/axios';
+import api from '../../services/api/axios';
 import {
     User,
     Building2,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../../services/axios';
+import api from '../../services/api/axios';
 import { useAppSelector } from '../../store/hooks';
 import {
     User,

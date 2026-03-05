@@ -82,7 +82,7 @@ app.get('/health', (req, res) => {
 app.use('/api/register', registerRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/events', eventRoutes);
+app.use('/api/admin/events', eventRoutes);
 app.use('/api/member', memberAuthRoutes);
 app.use('/api/member/profile', memberProfileRoutes);
 app.use('/api/admin/profile-change-requests', adminProfileRoutes);

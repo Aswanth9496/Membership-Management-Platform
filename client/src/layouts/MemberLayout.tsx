@@ -18,7 +18,7 @@ import {
     UserCircle,
     BookOpen
 } from 'lucide-react';
-import api from '../services/axios';
+import api from '../services/api/axios';
 
 export const MemberLayout = () => {
     const navigate = useNavigate();

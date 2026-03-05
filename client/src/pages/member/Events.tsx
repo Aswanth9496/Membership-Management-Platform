@@ -8,7 +8,7 @@ import {
     CheckCircle2,
     X
 } from 'lucide-react';
-import api from '../../services/axios';
+import api from '../../services/api/axios';
 import Swal from 'sweetalert2';
 import { useAppSelector } from '../../store/hooks';
 
@@ -56,7 +56,7 @@ export default function Events() {
     const fetchEventsState = async () => {
         try {
             const [eventsResp, myEventsResp] = await Promise.all([
-                api.get('/api/events?status=published'),
+                api.get('/api/member/events?status=published'),
                 api.get('/api/member/events/my-events')
             ]);
 

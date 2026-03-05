@@ -12,8 +12,9 @@ import {
     X,
     Users
 } from 'lucide-react';
-import api from '../../services/axios';
+import api from '../../services/api/axios';
 import MySwal from '../../utils/swal';
+import { CSVLink } from 'react-csv';
 
 interface TravelEvent {
     id: string;
@@ -62,10 +63,29 @@ export default function Events() {
         fetchInitialData();
     }, []);
 
+    // Registrations View State
+    const [isRegistrationsModalOpen, setIsRegistrationsModalOpen] = useState(false);
+    const [eventRegistrations, setEventRegistrations] = useState<{ eventTitle: string, totalRegistrations: number, registrations: any[] }>({ eventTitle: '', totalRegistrations: 0, registrations: [] });
+    const [registrationsLoading, setRegistrationsLoading] = useState(false);
+
+    const handleViewRegistrations = async (eventId: string, title: string) => {
+        try {
+            setRegistrationsLoading(true);
+            setIsRegistrationsModalOpen(true);
+            const response = await api.get(`/api/admin/events/${eventId}/registrations`);
+            setEventRegistrations(response.data.data);
+        } catch (err: any) {
+            MySwal.fire('Error', err.response?.data?.message || 'Failed to fetch registrations', 'error');
+            setIsRegistrationsModalOpen(false);
+        } finally {
+            setRegistrationsLoading(false);
+        }
+    };
+
     const fetchInitialData = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/api/events');
+            const response = await api.get('/api/admin/events');
             const eventData = (response.data?.data?.events || []).map((e: any) => ({
                 id: e._id,
                 title: e.title,
@@ -91,7 +111,7 @@ export default function Events() {
     const openEditForm = async (id: string) => {
         try {
             setLoading(true);
-            const { data } = await api.get(`/api/events/${id}`);
+            const { data } = await api.get(`/api/admin/events/${id}`);
             const ev = data.data.event;
             setEventForm({
                 title: ev.title || '',
@@ -124,7 +144,7 @@ export default function Events() {
     const handleViewDetails = async (id: string) => {
         try {
             setLoading(true);
-            const { data } = await api.get(`/api/events/${id}`);
+            const { data } = await api.get(`/api/admin/events/${id}`);
             const ev = data.data.event;
             MySwal.fire({
                 title: `<span class="italic text-slate-800 font-extrabold tracking-tight">${ev.title}</span>`,
@@ -193,7 +213,7 @@ export default function Events() {
             };
 
             if (editingEventId) {
-                await api.patch(`/api/events/${editingEventId}`, payload);
+                await api.patch(`/api/admin/events/${editingEventId}`, payload);
                 MySwal.fire({
                     title: 'Updated!',
                     text: 'Event details have been successfully updated.',
@@ -203,7 +223,7 @@ export default function Events() {
                 });
             } else {
                 const createPayload = { ...payload, status: 'published' };
-                await api.post('/api/events', createPayload);
+                await api.post('/api/admin/events', createPayload);
                 MySwal.fire({
                     title: 'Success!',
                     text: 'New event has been created and published.',
@@ -243,7 +263,7 @@ export default function Events() {
         if (result.isConfirmed) {
             try {
                 setLoading(true);
-                await api.delete(`/api/events/${id}`);
+                await api.delete(`/api/admin/events/${id}`);
                 setEvents(prev => prev.filter(e => e.id !== id));
                 MySwal.fire({
                     title: 'Deleted!',
@@ -279,7 +299,7 @@ export default function Events() {
         if (newStatus && newStatus !== currentStatus) {
             try {
                 setLoading(true);
-                await api.patch(`/api/events/${id}`, { status: newStatus });
+                await api.patch(`/api/admin/events/${id}`, { status: newStatus });
                 setEvents(prev => prev.map(e => e.id === id ? { ...e, status: newStatus as any } : e));
                 MySwal.fire({
                     title: 'Updated',
@@ -433,6 +453,9 @@ export default function Events() {
                                         </td>
                                         <td className="px-6 py-5 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleViewRegistrations(event.id, event.title)} className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all" title="View Registrations">
+                                                    <Users size={18} />
+                                                </button>
                                                 <button onClick={() => handleViewDetails(event.id)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" title="View Details">
                                                     <Eye size={18} />
                                                 </button>
@@ -468,41 +491,43 @@ export default function Events() {
                         <div key={event.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-5 relative overflow-hidden transition-all hover:border-blue-200">
                             {/* Card Header */}
                             <div className="flex justify-between items-start gap-3">
-                                <div className="flex items-start gap-4 flex-1 pr-2">
-                                    <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center font-bold border border-slate-100 flex-shrink-0">
-                                        <Calendar size={24} />
+                                <div className="flex items-start gap-3 sm:gap-4 flex-1 pr-2">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center font-bold border border-slate-100 flex-shrink-0">
+                                        <Calendar size={20} className="sm:hidden" />
+                                        <Calendar size={24} className="hidden sm:block" />
                                     </div>
-                                    <div className="flex flex-col pt-0.5 min-w-0">
-                                        <div className="font-extrabold text-slate-900 leading-tight text-base truncate">{event.title}</div>
-                                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1.5 truncate">{event.eventType}</div>
+                                    <div className="flex flex-col pt-0.5 min-w-0 w-full">
+                                        <div className="font-extrabold text-slate-900 leading-tight text-[15px] sm:text-base break-words line-clamp-2">{event.title}</div>
+                                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 sm:mt-1.5 truncate">{event.eventType}</div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Status and Action Row */}
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-wrap items-center justify-between gap-3 mt-1 border-t border-slate-100 pt-3">
                                 <button
                                     onClick={() => handleChangeStatus(event.id, event.status)}
-                                    className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${getStatusBadge(event.status)}`}
+                                    className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-[9px] font-black uppercase tracking-widest transition-all ${getStatusBadge(event.status)}`}
                                 >
                                     {event.status}
                                 </button>
-                                <div className="flex gap-1">
-                                    <button onClick={() => handleViewDetails(event.id)} className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 rounded-xl text-xs"><Eye size={14} /></button>
-                                    <button onClick={() => openEditForm(event.id)} className="p-2 text-slate-400 hover:text-emerald-600 bg-slate-50 rounded-xl text-xs"><Edit size={14} /></button>
-                                    <button onClick={() => handleDeleteEvent(event.id, event.title)} className="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-xl text-xs"><Trash size={14} /></button>
+                                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                                    <button onClick={() => handleViewRegistrations(event.id, event.title)} className="flex-1 sm:flex-none flex justify-center p-2.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 bg-slate-50 rounded-xl text-xs transition-colors" title="View Registrations"><Users size={16} /></button>
+                                    <button onClick={() => handleViewDetails(event.id)} className="flex-1 sm:flex-none flex justify-center p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 bg-slate-50 rounded-xl text-xs transition-colors"><Eye size={16} /></button>
+                                    <button onClick={() => openEditForm(event.id)} className="flex-1 sm:flex-none flex justify-center p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 bg-slate-50 rounded-xl text-xs transition-colors"><Edit size={16} /></button>
+                                    <button onClick={() => handleDeleteEvent(event.id, event.title)} className="flex-1 sm:flex-none flex justify-center p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 bg-slate-50 rounded-xl text-xs transition-colors"><Trash size={16} /></button>
                                 </div>
                             </div>
 
                             {/* Data Grid */}
-                            <div className="bg-slate-50/60 rounded-2xl p-4 grid grid-cols-2 gap-y-5 gap-x-3 border border-slate-100/50">
+                            <div className="bg-slate-50/60 rounded-2xl p-4 grid grid-cols-2 gap-y-4 gap-x-3 border border-slate-100/50 mt-1">
                                 <div className="min-w-0">
                                     <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">Schedule</div>
-                                    <div className="text-xs font-bold text-slate-700 truncate">{new Date(event.startDate).toLocaleDateString()}</div>
+                                    <div className="text-[13px] sm:text-xs font-bold text-slate-700 truncate">{new Date(event.startDate).toLocaleDateString()}</div>
                                 </div>
                                 <div className="min-w-0">
                                     <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">Location</div>
-                                    <div className="text-xs font-bold text-slate-700 truncate">{event.city}</div>
+                                    <div className="text-[13px] sm:text-xs font-bold text-slate-700 truncate">{event.city}</div>
                                 </div>
                                 <div className="col-span-2">
                                     <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Users size={10} /> Registrations</div>
@@ -622,6 +647,133 @@ export default function Events() {
                                 {editingEventId ? <><Edit size={18} /> Update Official Event</> : <><Plus size={18} /> Publish Official Event</>}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Registrations Modal */}
+            {isRegistrationsModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4">
+                    <div className="bg-white sm:rounded-[2.5rem] shadow-2xl max-w-5xl w-full h-[100vh] sm:h-[85vh] flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+                        <div className="px-5 sm:px-8 py-5 sm:py-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white shrink-0">
+                            <div className="flex items-start justify-between sm:block w-full sm:w-auto">
+                                <div className="pr-4 max-w-full">
+                                    <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight break-words">{eventRegistrations.eventTitle}</h2>
+                                    <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">Total Registrations: <span className="font-bold text-slate-700">{eventRegistrations.totalRegistrations}</span></p>
+                                </div>
+                                <button onClick={() => setIsRegistrationsModalOpen(false)} className="sm:hidden p-2 -mr-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors shrink-0">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                                {eventRegistrations.registrations.length > 0 && (
+                                    <CSVLink
+                                        data={eventRegistrations.registrations}
+                                        filename={`registrations-${eventRegistrations.eventTitle.replace(/\s+/g, '-').toLowerCase()}.csv`}
+                                        className="w-full sm:w-auto px-4 py-2.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center rounded-xl text-xs font-bold transition-colors border border-emerald-200"
+                                    >
+                                        Export CSV
+                                    </CSVLink>
+                                )}
+                                <button onClick={() => setIsRegistrationsModalOpen(false)} className="hidden sm:block p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors shrink-0">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50/50 p-4 sm:p-6 w-full">
+                            {registrationsLoading ? (
+                                <div className="flex justify-center items-center h-full text-slate-400 italic">Loading registrations...</div>
+                            ) : eventRegistrations.registrations.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-3 py-10">
+                                    <Users size={48} className="text-slate-300" />
+                                    <p className="text-slate-500 font-medium">No registrations found for this event yet.</p>
+                                </div>
+                            ) : (
+                                <div className="w-full">
+                                    {/* Desktop / Tablet Table View */}
+                                    <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                                        <div className="overflow-x-auto w-full">
+                                            <table className="w-full text-left border-collapse table-auto min-w-[700px]">
+                                                <thead>
+                                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                                        <th className="px-6 py-4 text-xs font-bold text-slate-500">Participant Name</th>
+                                                        <th className="px-6 py-4 text-xs font-bold text-slate-500">Contact Details</th>
+                                                        <th className="px-6 py-4 text-xs font-bold text-slate-500">Agency / Estab.</th>
+                                                        <th className="px-6 py-4 text-xs font-bold text-slate-500">Reg. Date</th>
+                                                        <th className="px-6 py-4 text-xs font-bold text-slate-500">Payment Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {eventRegistrations.registrations.map((reg, idx) => (
+                                                        <tr key={reg.id || idx} className="hover:bg-slate-50/50">
+                                                            <td className="px-6 py-4">
+                                                                <div className="font-bold text-slate-900 break-words">{reg.name}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4 max-w-[200px]">
+                                                                <div className="text-sm font-medium text-slate-700 break-all">{reg.email}</div>
+                                                                <div className="text-xs text-slate-500 mt-0.5">{reg.phone}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-sm font-medium text-slate-700 max-w-[200px] truncate" title={reg.establishment}>{reg.establishment}</td>
+                                                            <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
+                                                                {new Date(reg.registrationDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                {reg.paymentStatus === 'free' ? (
+                                                                    <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded-md tracking-wider">Free</span>
+                                                                ) : reg.paymentStatus === 'completed' ? (
+                                                                    <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase rounded-md tracking-wider border border-emerald-200">Paid - ₹{reg.amount}</span>
+                                                                ) : (
+                                                                    <span className="px-2.5 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold uppercase rounded-md tracking-wider border border-amber-200">Pending</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Mobile Cards View */}
+                                    <div className="md:hidden flex flex-col gap-4">
+                                        {eventRegistrations.registrations.map((reg, idx) => (
+                                            <div key={reg.id || idx} className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3 shadow-sm transition-all hover:border-blue-200">
+                                                <div className="flex justify-between items-start gap-4">
+                                                    <div className="font-bold text-slate-900 break-words flex-1 text-base">{reg.name}</div>
+                                                    <div className="shrink-0 mt-0.5">
+                                                        {reg.paymentStatus === 'free' ? (
+                                                            <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[9px] font-bold uppercase rounded-md tracking-wider inline-block">Free</span>
+                                                        ) : reg.paymentStatus === 'completed' ? (
+                                                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-bold uppercase rounded-md tracking-wider border border-emerald-200 inline-block">Paid - ₹{reg.amount}</span>
+                                                        ) : (
+                                                            <span className="px-2.5 py-1 bg-amber-50 text-amber-600 text-[9px] font-bold uppercase rounded-md tracking-wider border border-amber-200 inline-block">Pending</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col gap-1 border-t border-slate-100 pt-3">
+                                                    <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-0.5 flex items-center gap-1.5"><Users size={12} className="text-blue-500" /> Contact</div>
+                                                    <div className="text-sm font-medium text-slate-700 break-all">{reg.email}</div>
+                                                    <div className="text-sm text-slate-600">{reg.phone}</div>
+                                                </div>
+
+                                                <div className="flex flex-col gap-1 border-t border-slate-100 pt-3">
+                                                    <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-0.5 flex items-center gap-1.5"><MapPin size={12} className="text-purple-500" /> Agency / Estab.</div>
+                                                    <div className="text-sm font-medium text-slate-700 break-words">{reg.establishment}</div>
+                                                </div>
+
+                                                <div className="flex justify-between items-center border-t border-slate-100 pt-3 mt-1">
+                                                    <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-1"><Calendar size={12} className="text-emerald-500" /> Reg. Date</div>
+                                                    <div className="text-sm text-slate-600 font-bold">
+                                                        {new Date(reg.registrationDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

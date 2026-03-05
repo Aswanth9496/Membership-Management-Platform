@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
-import api from '../../services/axios';
+import api from '../../services/api/axios';
 import MySwal from '../../utils/swal';
 import {
     Building2,

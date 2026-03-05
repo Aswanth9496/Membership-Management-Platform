@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createEventController, getAllEventsController, getEventDetailsController, updateEventController, deleteEventController } = require('../controllers/eventController');
+const { createEventController, getAllEventsController, getEventDetailsController, updateEventController, deleteEventController, getEventRegistrationsController } = require('../controllers/eventController');
 const { createEventValidationRules, updateEventValidationRules, validate } = require('../validators/eventValidator');
 const asyncHandler = require('../middlewares/asyncHandler');
 const { authenticateAdmin } = require('../middlewares/authMiddleware');
@@ -15,6 +15,9 @@ router.get('/', authenticateAdmin, asyncHandler(getAllEventsController));
 
 // Get Single Event Details
 router.get('/:id', authenticateAdmin, asyncHandler(getEventDetailsController));
+
+// Get Event Registrations
+router.get('/:eventId/registrations', authenticateAdmin, asyncHandler(getEventRegistrationsController));
 
 // Update Event
 router.patch('/:id', authenticateAdmin, updateEventValidationRules, validate, asyncHandler(updateEventController));

@@ -94,7 +94,7 @@ export const logoutUser = createAsyncThunk<void, void, { state: any }>(
         const state = getState();
         const role = state.auth.user?.role;
         try {
-            if (role === 'admin') {
+            if (['admin', 'president', 'secretary', 'treasurer', 'super_admin'].includes(role)) {
                 await authService.logoutAdmin();
             } else if (role === 'member') {
                 await authService.logoutMember();

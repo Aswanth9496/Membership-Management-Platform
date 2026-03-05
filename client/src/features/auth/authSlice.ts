@@ -3,11 +3,21 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { AuthState, AuthResponse, User } from './types';
 import { loginAdminUser, loginMemberUser, fetchProfile, logoutUser } from './authThunks';
 
+const getStoredToken = () => {
+    const token = localStorage.getItem('token');
+    if (!token || token === 'undefined' || token === 'null' || token === '') {
+        return null;
+    }
+    return token;
+};
+
+const token = getStoredToken();
+
 const initialState: AuthState = {
     user: null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: !!localStorage.getItem('token'),
-    status: localStorage.getItem('token') ? 'loading' : 'idle',
+    token,
+    isAuthenticated: !!token,
+    status: token ? 'loading' : 'idle',
     error: null,
 };
 

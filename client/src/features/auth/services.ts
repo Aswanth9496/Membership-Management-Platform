@@ -1,4 +1,4 @@
-import api from '../../services/axios';
+import api from '../../services/api/axios';
 import type { LoginCredentials, AuthResponse, ProfileResponse, RegisterAdminCredentials, RegisterResponse } from './types';
 
 export const loginAdmin = async (credentials: LoginCredentials): Promise<AuthResponse> => {

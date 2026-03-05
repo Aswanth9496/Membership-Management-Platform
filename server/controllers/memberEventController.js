@@ -1,6 +1,47 @@
 const { registerForEvent, verifyRegistrationPayment, getMyRegisteredEvents } = require('../services/memberEventService');
+const { getAllEvents, getEventById } = require('../services/eventService');
 const { successResponse } = require('../utils/responseHelper');
 const { getRazorpayKeyId } = require('../utils/razorpayHelper');
+const ApiError = require('../utils/ApiError');
+
+/**
+ * Controller to get all published events for members
+ */
+const getPublishedEventsController = async (req, res) => {
+    const { eventType, page, limit } = req.query;
+
+    // Force status to 'published' to secure member access
+    const result = await getAllEvents({ status: 'published', eventType, page, limit });
+
+    successResponse(
+        res,
+        {
+            events: result.events,
+            pagination: result.pagination,
+        },
+        'Published events retrieved successfully'
+    );
+};
+
+/**
+ * Controller to get a specific published event's details
+ */
+const getPublishedEventDetailsController = async (req, res) => {
+    const { eventId } = req.params;
+
+    const event = await getEventById(eventId);
+
+    // Prevent members from viewing non-published events
+    if (event.status !== 'published') {
+        throw new ApiError(404, 'Event not found or not published');
+    }
+
+    successResponse(
+        res,
+        { event },
+        'Event details retrieved successfully'
+    );
+};
 
 /**
  * Controller to handle event registration
@@ -73,6 +114,8 @@ const getMyEventsController = async (req, res) => {
 };
 
 module.exports = {
+    getPublishedEventsController,
+    getPublishedEventDetailsController,
     registerForEventController,
     verifyEventRegistrationController,
     getMyEventsController,

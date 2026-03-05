@@ -1,103 +1,21 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { useAppSelector } from '../../store/hooks';
-import api from '../../services/axios';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import {
     CheckCircle2,
     RefreshCw,
     Calendar,
-    Download,
     Info,
     AlertTriangle,
-    Mail,
-    Check,
     MapPin,
     Video,
     Receipt
 } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { useDashboard } from '../../hooks/useDashboard';
 
 export default function Dashboard() {
-    const { user } = useAppSelector((state: any) => state.auth);
-    const navigate = useNavigate();
-    const [profile, setProfile] = useState<any>(null);
-    const [myEvents, setMyEvents] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { profile, loading, myEvents, recentPayments, firstName, navigate } = useDashboard();
 
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            if (user?.role && user.role !== 'member') {
-                navigate('/admin/dashboard', { replace: true });
-                return;
-            }
+    if (loading) return null; // Or a skeleton loader here
 
-            try {
-                const [profileRes, eventsRes] = await Promise.all([
-                    api.get('/api/member/profile'),
-                    api.get('/api/member/events/my-events').catch(() => ({ data: { data: { events: [] } } }))
-                ]);
-
-                setProfile(profileRes.data.data.member || profileRes.data.data.user);
-                setMyEvents(eventsRes.data.data.events || []);
-            } catch (error) {
-                console.error('Failed to fetch profile', error);
-                Swal.fire('Error', 'Could not load your secure dashboard.', 'error');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
-    }, [user, navigate]);
-
-    const recentPayments = useMemo(() => {
-        let payments: any[] = [];
-
-        if (profile?.payment?.amount > 0) {
-            payments.push({
-                id: 'reg_payment',
-                date: profile.payment.paymentDate || profile.createdAt || new Date(),
-                description: 'Membership Registration',
-                amount: profile.payment.amount,
-                status: profile.payment.status
-            });
-        }
-
-        if (profile?.renewalHistory && Array.isArray(profile.renewalHistory)) {
-            profile.renewalHistory.forEach((ren: any, i: number) => {
-                if (ren.amount > 0) {
-                    payments.push({
-                        id: `ren_${i}`,
-                        date: ren.renewalDate || new Date(),
-                        description: 'Membership Renewal',
-                        amount: ren.amount,
-                        status: ren.status
-                    });
-                }
-            });
-        }
-
-        if (myEvents && Array.isArray(myEvents)) {
-            myEvents.forEach((evt: any) => {
-                const reg = evt.registrationDetails;
-                if (reg?.amount > 0) {
-                    payments.push({
-                        id: `evt_${evt.id}`,
-                        date: reg.registeredAt || evt.eventDate?.startDate || new Date(),
-                        description: `Event Ticket: ${evt.title}`,
-                        amount: reg.amount,
-                        status: reg.paymentStatus || 'completed'
-                    });
-                }
-            });
-        }
-
-        return payments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
-    }, [profile, myEvents]);
-
-    // Using mostly static data from context of the redesign per the image, mixed with some real profile data.
-    const fullName = profile?.fullName || user?.name || 'Alex Johnson';
-    const firstName = fullName.split(' ')[0] || 'Alex';
 
     return (
         <div className="w-full max-w-7xl mx-auto font-sans text-slate-900 pb-10">

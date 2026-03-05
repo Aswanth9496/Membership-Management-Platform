@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
 
 interface ProtectedRouteProps {
-    allowedRoles?: ('admin' | 'member' | 'president' | 'secretary' | 'treasurer')[];
+    allowedRoles?: ('admin' | 'member' | 'president' | 'secretary' | 'treasurer' | 'super_admin')[];
     children?: React.ReactNode;
 }
 
@@ -16,8 +16,11 @@ export const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) 
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
 
+    const rawToken = localStorage.getItem('token');
+    const hasValidToken = rawToken && rawToken !== 'undefined' && rawToken !== 'null' && rawToken !== '';
+
     // If not authenticated (and token not resolving), redirect to either member or admin login
-    if (!isAuthenticated && !localStorage.getItem('token')) {
+    if (!isAuthenticated && !hasValidToken) {
         const isAttemptingAdmin = location.pathname.startsWith('/admin');
         return <Navigate to={isAttemptingAdmin ? "/admin/login" : "/login"} replace />;
     }

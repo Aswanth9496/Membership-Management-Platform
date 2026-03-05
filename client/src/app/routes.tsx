@@ -57,10 +57,12 @@ export const Routes = () => {
         <Route
           path="/"
           element={
-            isAuthenticated
-              ? user?.role === 'member'
+            isAuthenticated && user
+              ? user.role === 'member'
                 ? <Navigate to="/dashboard" replace />
-                : <Navigate to="/admin/dashboard" replace />
+                : ['admin', 'president', 'secretary', 'treasurer', 'super_admin'].includes(user.role)
+                  ? <Navigate to="/admin/dashboard" replace />
+                  : <Navigate to="/login" replace />
               : <Navigate to="/login" replace />
           }
         />
@@ -101,7 +103,7 @@ export const Routes = () => {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRoles={["admin", "president", "secretary", "treasurer"]}>
+            <ProtectedRoute allowedRoles={["admin", "president", "secretary", "treasurer", "super_admin"]}>
               <AdminLayout />
             </ProtectedRoute>
           }

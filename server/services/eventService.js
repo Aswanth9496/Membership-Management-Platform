@@ -278,10 +278,54 @@ const deleteEvent = async (eventId) => {
   }
 };
 
+// Get all registrations for an event (Admin only)
+const getEventRegistrations = async (eventId) => {
+  try {
+    const event = await Event.findById(eventId)
+      .populate('registrations.member', 'fullName email mobile member.fullName member.mobile establishment.name')
+      .select('title registrations')
+      .lean();
+
+    if (!event) {
+      throw new ApiError(404, 'Event not found');
+    }
+
+    // Format the response
+    const formattedRegistrations = event.registrations.map(reg => {
+      // Handle the case where member might be null or missing
+      const memberData = reg.member || {};
+
+      return {
+        id: reg._id,
+        name: memberData.fullName || memberData.member?.fullName || 'N/A',
+        email: memberData.email || 'N/A',
+        phone: memberData.mobile || memberData.member?.mobile || 'N/A',
+        establishment: memberData.establishment?.name || 'N/A',
+        registrationDate: reg.registeredAt,
+        paymentStatus: reg.payment?.status || 'free',
+        amount: reg.payment?.amount || 0,
+        transactionId: reg.payment?.transactionId,
+        confirmationNumber: reg.confirmationNumber,
+        attendanceStatus: reg.attendance?.isPresent ? 'Present' : 'Absent'
+      };
+    });
+
+    return {
+      eventTitle: event.title,
+      totalRegistrations: formattedRegistrations.length,
+      registrations: formattedRegistrations
+    };
+  } catch (error) {
+    console.error('Error fetching event registrations:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   createEvent,
   getAllEvents,
   getEventById,
   updateEvent,
   deleteEvent,
+  getEventRegistrations,
 };

@@ -1,4 +1,4 @@
-const { createEvent, getAllEvents, getEventById, updateEvent, deleteEvent } = require('../services/eventService');
+const { createEvent, getAllEvents, getEventById, updateEvent, deleteEvent, getEventRegistrations } = require('../services/eventService');
 const { successResponse } = require('../utils/responseHelper');
 const ApiError = require('../utils/ApiError');
 
@@ -111,10 +111,24 @@ const deleteEventController = async (req, res) => {
   );
 };
 
+// Get event registrations (Admin only)
+const getEventRegistrationsController = async (req, res) => {
+  const { eventId } = req.params;
+
+  const result = await getEventRegistrations(eventId);
+
+  successResponse(
+    res,
+    result,
+    'Event registrations retrieved successfully'
+  );
+};
+
 module.exports = {
   createEventController,
   getAllEventsController,
   getEventDetailsController,
   updateEventController,
   deleteEventController,
+  getEventRegistrationsController,
 };
