@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -62,6 +63,9 @@ const adminProfileRoutes = require('./routes/adminProfileRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const memberEventRoutes = require('./routes/memberEventRoutes');
 const authRoutes = require('./routes/authRoutes');
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => {
     res.json({

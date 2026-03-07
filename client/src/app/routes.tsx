@@ -16,8 +16,10 @@ import AdminMembers from '../pages/admin/Members';
 import AdminApprovals from '../pages/admin/Approvals';
 import AdminEvents from '../pages/admin/Events';
 import AdminRejectedUsers from '../pages/admin/RejectedUsers';
+import AdminPayments from '../pages/admin/Payments';
 import AdminLogin from '../pages/admin/Login';
 import AdminRegister from '../pages/admin/Register';
+import AdminProfileUpdates from '../pages/admin/ProfileUpdates';
 
 // Member Pages
 import MemberLogin from '../pages/member/Login';
@@ -113,6 +115,8 @@ export const Routes = () => {
           <Route path="members" element={<AdminMembers />} />
           <Route path="pending" element={<AdminApprovals />} />
           <Route path="events" element={<AdminEvents />} />
+          <Route path="payments" element={<AdminPayments />} />
+          <Route path="profile-updates" element={<AdminProfileUpdates />} />
           <Route path="rejected-users" element={<AdminRejectedUsers />} />
         </Route>
 

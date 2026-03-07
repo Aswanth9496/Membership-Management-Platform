@@ -20,6 +20,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../store/hooks';
 import { registerMemberUser } from '../../features/auth/authThunks';
+import api from '../../services/api/axios';
 
 export default function Register() {
     const navigate = useNavigate();
@@ -253,23 +254,25 @@ export default function Register() {
         setError(null);
 
         try {
-            // Simulated Upload Delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const uploadData = new FormData();
+            uploadData.append('document', file);
 
-            // In a real app, you'd upload to S3/Cloudinary here
-            // For now, we use a placeholder and store the name
+            const res = await api.post('/api/register/documents/upload', uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
             setFormData(prev => ({
                 ...prev,
                 documents: {
                     ...prev.documents,
                     [field]: {
-                        url: `https://placeholder.com/uploaded/${file.name}`,
-                        publicId: `inst_${Date.now()}`
+                        url: res.data.data.url,
+                        publicId: res.data.data.publicId
                     }
                 }
             }));
-        } catch (err) {
-            setError("Upload failed. Please try again.");
+        } catch (err: any) {
+            setError(err.response?.data?.message || "Upload failed. Please try again.");
         } finally {
             setUploading(null);
         }
@@ -355,12 +358,12 @@ export default function Register() {
         <div className="flex items-center justify-between mb-8 px-2">
             {[1, 2, 3, 4, 5, 6].map((step) => (
                 <div key={step} className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${currentStep >= step ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${currentStep >= step ? 'bg-primary text-white' : 'bg-slate-200 text-slate-500'
                         }`}>
                         {step}
                     </div>
                     {step < 6 && (
-                        <div className={`w-8 h-1 transition-colors ${currentStep > step ? 'bg-blue-600' : 'bg-slate-200'
+                        <div className={`w-8 h-1 transition-colors ${currentStep > step ? 'bg-primary' : 'bg-slate-200'
                             }`} />
                     )}
                 </div>
@@ -402,25 +405,25 @@ export default function Register() {
                 {currentStep === 1 && (
                     <div className="space-y-4 animate-in fade-in duration-300">
                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <Building2 size={20} className="text-blue-600" />
+                            <Building2 size={20} className="text-primary" />
                             Agency Details
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Agency Name</label>
-                                <input name="establishment.name" value={formData.establishment.name} onChange={handleChange} placeholder="Elite Travels" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="establishment.name" value={formData.establishment.name} onChange={handleChange} placeholder="Elite Travels" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Trade Name</label>
-                                <input name="establishment.tradeName" value={formData.establishment.tradeName} onChange={handleChange} placeholder="Elite Travel & Tours" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="establishment.tradeName" value={formData.establishment.tradeName} onChange={handleChange} placeholder="Elite Travel & Tours" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Official Email</label>
-                                <input name="establishment.officialEmail" value={formData.establishment.officialEmail} onChange={handleChange} placeholder="info@elitetravels.com" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="establishment.officialEmail" value={formData.establishment.officialEmail} onChange={handleChange} placeholder="info@elitetravels.com" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Classification</label>
-                                <select name="establishment.officialClassification" value={formData.establishment.officialClassification} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none">
+                                <select name="establishment.officialClassification" value={formData.establishment.officialClassification} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none">
                                     <option value="">Select Category</option>
                                     <option value="Proprietorship">Proprietorship</option>
                                     <option value="Partnership">Partnership</option>
@@ -430,7 +433,7 @@ export default function Register() {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Business Type</label>
-                                <select name="establishment.businessType" value={formData.establishment.businessType} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none">
+                                <select name="establishment.businessType" value={formData.establishment.businessType} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none">
                                     <option value="">Select Business Type</option>
                                     <option value="Retail">Retail</option>
                                     <option value="Wholesale">Wholesale</option>
@@ -440,22 +443,22 @@ export default function Register() {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Incorporation Year</label>
-                                <input type="number" name="establishment.yearOfEstablishment" value={formData.establishment.yearOfEstablishment} onChange={handleChange} placeholder="2010" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input type="number" name="establishment.yearOfEstablishment" value={formData.establishment.yearOfEstablishment} onChange={handleChange} placeholder="2010" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Website</label>
-                                <input name="establishment.website" value={formData.establishment.website} onChange={handleChange} placeholder="www.example.com" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="establishment.website" value={formData.establishment.website} onChange={handleChange} placeholder="www.example.com" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div className="sm:col-span-2">
                                 <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" name="establishment.gstRegistered" checked={formData.establishment.gstRegistered} onChange={handleChange} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                                    <input type="checkbox" name="establishment.gstRegistered" checked={formData.establishment.gstRegistered} onChange={handleChange} className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-slate-1000" />
                                     <span className="text-sm font-bold text-slate-600 uppercase tracking-tight">Registered for GST</span>
                                 </label>
                             </div>
                             {formData.establishment.gstRegistered && (
                                 <div className="sm:col-span-2">
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">GST Number</label>
-                                    <input name="establishment.gstNumber" value={formData.establishment.gstNumber} onChange={handleChange} placeholder="GSTXXXXXXXXXXXX" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                    <input name="establishment.gstNumber" value={formData.establishment.gstNumber} onChange={handleChange} placeholder="GSTXXXXXXXXXXXX" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                                 </div>
                             )}
                         </div>
@@ -466,36 +469,36 @@ export default function Register() {
                 {currentStep === 2 && (
                     <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <MapPin size={20} className="text-blue-600" />
+                            <MapPin size={20} className="text-primary" />
                             Location Details
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">District</label>
-                                <input name="location.district" value={formData.location.district} onChange={handleChange} placeholder="Kozhikode" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="location.district" value={formData.location.district} onChange={handleChange} placeholder="Kozhikode" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">City</label>
-                                <input name="location.city" value={formData.location.city} onChange={handleChange} placeholder="Kochi" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="location.city" value={formData.location.city} onChange={handleChange} placeholder="Kochi" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Pin Code</label>
-                                <input name="location.pinCode" value={formData.location.pinCode} onChange={handleChange} placeholder="673001" maxLength={6} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="location.pinCode" value={formData.location.pinCode} onChange={handleChange} placeholder="673001" maxLength={6} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div className="sm:col-span-2">
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Registered Address</label>
-                                <textarea name="location.registeredAddress" value={formData.location.registeredAddress} onChange={handleChange} rows={3} placeholder="Full address..." className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none resize-none" />
+                                <textarea name="location.registeredAddress" value={formData.location.registeredAddress} onChange={handleChange} rows={3} placeholder="Full address..." className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none resize-none" />
                             </div>
                             <div className="sm:col-span-2">
                                 <label className="flex items-center gap-2 cursor-pointer mb-2">
-                                    <input type="checkbox" name="location.isSameAddress" checked={formData.location.isSameAddress} onChange={handleChange} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                                    <input type="checkbox" name="location.isSameAddress" checked={formData.location.isSameAddress} onChange={handleChange} className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-slate-1000" />
                                     <span className="text-sm font-bold text-slate-600 uppercase tracking-tight">Communication address is same as registered</span>
                                 </label>
                             </div>
                             {!formData.location.isSameAddress && (
                                 <div className="sm:col-span-2">
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Communication Address</label>
-                                    <textarea name="location.communicationAddress" value={formData.location.communicationAddress} onChange={handleChange} rows={3} placeholder="Mailing address..." className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none resize-none" />
+                                    <textarea name="location.communicationAddress" value={formData.location.communicationAddress} onChange={handleChange} rows={3} placeholder="Mailing address..." className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none resize-none" />
                                 </div>
                             )}
                         </div>
@@ -506,25 +509,25 @@ export default function Register() {
                 {currentStep === 3 && (
                     <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <UserIcon size={20} className="text-blue-600" />
+                            <UserIcon size={20} className="text-primary" />
                             Personal Information
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="sm:col-span-2">
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Full Name</label>
-                                <input name="member.fullName" value={formData.member.fullName} onChange={handleChange} placeholder="John Doe" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="member.fullName" value={formData.member.fullName} onChange={handleChange} placeholder="John Doe" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Mobile Number</label>
-                                <input name="member.mobile" value={formData.member.mobile} onChange={handleChange} placeholder="9876543210" maxLength={10} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="member.mobile" value={formData.member.mobile} onChange={handleChange} placeholder="9876543210" maxLength={10} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Date of Birth</label>
-                                <input type="date" name="member.dateOfBirth" value={formData.member.dateOfBirth} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input type="date" name="member.dateOfBirth" value={formData.member.dateOfBirth} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Office Type</label>
-                                <select name="member.officeType" value={formData.member.officeType} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none">
+                                <select name="member.officeType" value={formData.member.officeType} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none">
                                     <option value="">Select Office</option>
                                     <option value="Head Office">Head Office</option>
                                     <option value="Branch Office">Branch Office</option>
@@ -532,7 +535,7 @@ export default function Register() {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Role in Agency</label>
-                                <select name="member.roleInAgency" value={formData.member.roleInAgency} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none">
+                                <select name="member.roleInAgency" value={formData.member.roleInAgency} onChange={handleChange} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none">
                                     <option value="">Select Role</option>
                                     <option value="Owner">Owner</option>
                                     <option value="Partner">Partner</option>
@@ -542,7 +545,7 @@ export default function Register() {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Landline (Optional)</label>
-                                <input name="member.landline" value={formData.member.landline} onChange={handleChange} placeholder="0484 1234567" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="member.landline" value={formData.member.landline} onChange={handleChange} placeholder="0484 1234567" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                         </div>
                     </div>
@@ -552,7 +555,7 @@ export default function Register() {
                 {currentStep === 4 && (
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <ImageIcon size={20} className="text-blue-600" />
+                            <ImageIcon size={20} className="text-primary" />
                             Document Repository
                         </h3>
                         <p className="text-xs text-slate-500 font-medium -mt-2">Upload mandatory documents for verification. Max 2MB per file.</p>
@@ -562,7 +565,7 @@ export default function Register() {
                                 { id: 'agencyAddressProof', label: 'Agency Address Proof', icon: MapPin },
                                 { id: 'shopPhoto', label: 'Shop Front Photo', icon: ImageIcon },
                             ].map((doc) => (
-                                <div key={doc.id} className="p-4 border border-slate-200 rounded-2xl bg-slate-50/30 flex items-center justify-between group hover:border-blue-500/30 transition-colors">
+                                <div key={doc.id} className="p-4 border border-slate-200 rounded-2xl bg-slate-50/30 flex items-center justify-between group hover:border-slate-500/30 transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-white border border-slate-100 rounded-xl text-slate-400">
                                             <doc.icon size={20} />
@@ -596,7 +599,7 @@ export default function Register() {
                                                 type="button"
                                                 onClick={() => fileRefs[doc.id as keyof typeof fileRefs].current?.click()}
                                                 disabled={uploading === doc.id}
-                                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl shadow-sm hover:bg-slate-50 hover:text-blue-600 transition-all disabled:opacity-50"
+                                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl shadow-sm hover:bg-slate-50 hover:text-primary transition-all disabled:opacity-50"
                                             >
                                                 {uploading === doc.id ? (
                                                     <Loader2 className="animate-spin" size={14} />
@@ -618,46 +621,46 @@ export default function Register() {
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                         <div className="space-y-4">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <UserIcon size={20} className="text-blue-600" />
+                                <UserIcon size={20} className="text-primary" />
                                 Partner Details (Optional)
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Partner Name</label>
-                                    <input name="partner.name" value={formData.partner.name} onChange={handleChange} placeholder="Jane Doe" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                    <input name="partner.name" value={formData.partner.name} onChange={handleChange} placeholder="Jane Doe" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Partner Mobile</label>
-                                    <input name="partner.mobile" value={formData.partner.mobile} onChange={handleChange} placeholder="9876543211" maxLength={10} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                    <input name="partner.mobile" value={formData.partner.mobile} onChange={handleChange} placeholder="9876543211" maxLength={10} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                                 </div>
                             </div>
                         </div>
 
                         <div className="space-y-4">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-t border-slate-100 pt-6">
-                                <UserIcon size={20} className="text-blue-600" />
+                                <UserIcon size={20} className="text-primary" />
                                 Key Staff Details (Optional)
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Staff Name</label>
-                                    <input name="staff.name" value={formData.staff.name} onChange={handleChange} placeholder="Mark Smith" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                    <input name="staff.name" value={formData.staff.name} onChange={handleChange} placeholder="Mark Smith" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Staff Mobile</label>
-                                    <input name="staff.mobile" value={formData.staff.mobile} onChange={handleChange} placeholder="9876543212" maxLength={10} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                    <input name="staff.mobile" value={formData.staff.mobile} onChange={handleChange} placeholder="9876543212" maxLength={10} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                                 </div>
                             </div>
                         </div>
 
                         <div className="space-y-4">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-t border-slate-100 pt-6">
-                                <Shield size={20} className="text-blue-600" />
+                                <Shield size={20} className="text-primary" />
                                 Referral Program
                             </h3>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Referral Code (If any)</label>
-                                <input name="referralCode" value={formData.referralCode} onChange={handleChange} placeholder="REFXXXXXX" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="referralCode" value={formData.referralCode} onChange={handleChange} placeholder="REFXXXXXX" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                         </div>
                     </div>
@@ -667,21 +670,21 @@ export default function Register() {
                 {currentStep === 6 && (
                     <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <Lock size={20} className="text-blue-600" />
+                            <Lock size={20} className="text-primary" />
                             Account Credentials
                         </h3>
                         <div className="grid grid-cols-1 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Login Email</label>
-                                <input name="email" value={formData.email} onChange={handleChange} placeholder="member@example.com" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input name="email" value={formData.email} onChange={handleChange} placeholder="member@example.com" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Password</label>
-                                <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Confirm Password</label>
-                                <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus:ring-1 focus:ring-slate-1000 outline-none" />
                             </div>
                         </div>
                     </div>
@@ -699,12 +702,12 @@ export default function Register() {
                     )}
 
                     {currentStep < 6 ? (
-                        <button type="button" onClick={nextStep} className="flex items-center gap-2 px-8 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all">
+                        <button type="button" onClick={nextStep} className="flex items-center gap-2 px-8 py-2.5 bg-primary text-white text-sm font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-slate-700 transition-all">
                             Continue
                             <ChevronRight size={18} />
                         </button>
                     ) : (
-                        <button type="submit" disabled={loading} className="flex items-center gap-2 px-10 py-3 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all disabled:opacity-70">
+                        <button type="submit" disabled={loading} className="flex items-center gap-2 px-10 py-3 bg-primary text-white text-sm font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-slate-700 transition-all disabled:opacity-70">
                             {loading ? <Loader2 className="animate-spin w-5 h-5" /> : (
                                 <>
                                     <CheckCircle2 size={18} />
@@ -719,7 +722,7 @@ export default function Register() {
             <div className="mt-8 pt-6 border-t border-slate-100 text-center">
                 <p className="text-sm text-slate-500 font-medium">
                     Already a member?{' '}
-                    <Link to="/login" className="text-blue-600 font-bold hover:underline ml-1">Sign In instead</Link>
+                    <Link to="/login" className="text-primary font-bold hover:underline ml-1">Sign In instead</Link>
                 </p>
             </div>
         </div>

@@ -79,7 +79,7 @@ export default function Login() {
                             placeholder="member@example.com"
                             value={formData.email}
                             onChange={handleChange}
-                            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50"
+                            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-1000 bg-slate-50/50"
                             required
                         />
                     </div>
@@ -91,7 +91,7 @@ export default function Login() {
                         <label className="block text-sm font-semibold text-slate-800" htmlFor="password">
                             Password
                         </label>
-                        <Link to="#" className="text-sm text-blue-600 font-semibold hover:underline">
+                        <Link to="#" className="text-sm text-primary font-semibold hover:underline">
                             Forgot?
                         </Link>
                     </div>
@@ -106,7 +106,7 @@ export default function Login() {
                             placeholder="••••••••"
                             value={formData.password}
                             onChange={handleChange}
-                            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50"
+                            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-1000 bg-slate-50/50"
                             required
                         />
                     </div>
@@ -116,7 +116,7 @@ export default function Login() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-[#1d4ed8] hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg text-sm transition-colors flex items-center justify-center disabled:opacity-70"
+                        className="w-full bg-[#1d4ed8] hover:bg-slate-700 text-white font-medium py-3 px-4 rounded-lg text-sm transition-colors flex items-center justify-center disabled:opacity-70"
                     >
                         {loading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Sign In'}
                     </button>
@@ -125,7 +125,7 @@ export default function Login() {
 
             <div className="mt-6 text-center text-sm text-slate-500">
                 Not a member yet?{' '}
-                <Link to="/register" className="text-blue-600 font-bold hover:underline">
+                <Link to="/register" className="text-primary font-bold hover:underline">
                     Create Account
                 </Link>
             </div>

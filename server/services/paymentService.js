@@ -1,5 +1,6 @@
 const User = require('../models/User');
-const { calculateAmount, createOrder, verifyPaymentSignature, getRazorpayKeyId } = require('../utils/razorpayHelper');
+const Payment = require('../models/Payment');
+const { calculateAmount, createOrder, verifyPaymentSignature, getRazorpayKeyId, verifyWebhookSignature } = require('../utils/razorpayHelper');
 const { sendEmail } = require('../utils/emailService');
 const ApiError = require('../utils/ApiError');
 
@@ -10,11 +11,19 @@ const generateCertificateNumber = () => {
   return `CERT${year}${random}`;
 };
 
-// Helper: Calculate certificate expiry (1 year from issue date)
-const calculateExpiryDate = (issueDate) => {
-  const expiry = new Date(issueDate);
-  expiry.setFullYear(expiry.getFullYear() + 1);
-  return expiry;
+// Helper: Calculate certificate expiry (Max of existing expiry or today + 1 year)
+const calculateExpiryDate = (previousExpiry = null) => {
+  const now = new Date();
+
+  if (previousExpiry) {
+    const prevDate = new Date(previousExpiry);
+    const effectiveDate = prevDate > now ? prevDate : now;
+    effectiveDate.setFullYear(effectiveDate.getFullYear() + 1);
+    return effectiveDate;
+  }
+
+  now.setFullYear(now.getFullYear() + 1);
+  return now;
 };
 
 // 1. Create Payment Order
@@ -58,17 +67,29 @@ const createPaymentOrder = async (memberId) => {
     }
 
     // Create Razorpay order
-    const receipt = `${paymentType.toUpperCase()}_${member.membershipNumber || member._id}_${Date.now()}`;
+    // Note: Razorpay has a strict 40 character limit for 'receipt' strings.
+    const receipt = `RCPT_${Date.now().toString().slice(-9)}_${Math.floor(Math.random() * 1000)}`;
     const notes = {
       memberId: member._id.toString(),
       memberEmail: member.email,
-      memberName: member.member?.fullName,
+      memberName: member.member?.fullName || 'Member',
       paymentType,
     };
 
     const order = await createOrder(amounts.totalAmount, receipt, notes);
 
-    // Store order details in database (for verification later)
+    // Track payment authentically in Payment table
+    await Payment.create({
+      user: member._id,
+      razorpayOrderId: order.id,
+      amount: amounts.totalAmount,
+      currency: 'INR',
+      status: 'pending',
+      paymentType: paymentType,
+      metadata: notes
+    });
+
+    // Store order details in member (legacy compat)
     member.payment.razorpayOrderId = order.id;
     member.payment.amount = amounts.totalAmount;
     member.payment.baseAmount = amounts.baseAmount;
@@ -111,7 +132,7 @@ const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignatu
   try {
     // Verify signature
     const isValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
-    
+
     if (!isValid) {
       console.error('❌ Invalid payment signature');
       throw new ApiError(400, 'Payment verification failed. Invalid signature.');
@@ -119,27 +140,33 @@ const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignatu
 
     // Find member by order ID
     const member = await User.findOne({ 'payment.razorpayOrderId': razorpayOrderId });
-    
     if (!member) {
       throw new ApiError(404, 'Order not found. Please contact support.');
     }
 
-    // Check if already processed
-    if (member.payment.razorpayPaymentId === razorpayPaymentId) {
+    // Duplicate Check: Database-level lookup to ensure we don't process it twice
+    const existingPayment = await Payment.findOne({ razorpayOrderId: razorpayOrderId });
+    if (!existingPayment) {
+      throw new ApiError(404, 'Payment origin not internally recorded.');
+    }
+
+    if (existingPayment.status === 'completed' || member.payment.razorpayPaymentId === razorpayPaymentId) {
       console.log(`⚠️  Payment already processed for member: ${member.email}`);
       return {
         message: 'Payment already processed',
         alreadyProcessed: true,
-        member: {
-          id: member._id,
-          email: member.email,
-          status: member.status,
-        },
+        member: { id: member._id, email: member.email, status: member.status },
       };
     }
 
     const paymentType = member.payment.type;
     const paymentAmount = member.payment.amount;
+
+    // Secure the Payment record
+    existingPayment.status = 'completed';
+    existingPayment.razorpayPaymentId = razorpayPaymentId;
+    existingPayment.razorpaySignature = razorpaySignature;
+    await existingPayment.save();
 
     // Update payment details
     member.payment.status = 'completed';
@@ -151,8 +178,8 @@ const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignatu
 
     if (paymentType === 'new') {
       // NEW MEMBER - Generate certificate
+      const expiryDate = calculateExpiryDate(null); // today + 1 year
       const issueDate = new Date();
-      const expiryDate = calculateExpiryDate(issueDate);
 
       member.certificate.generated = true;
       member.certificate.certificateNumber = generateCertificateNumber();
@@ -214,11 +241,15 @@ const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignatu
         </html>
       `;
 
-      await sendEmail({
-        to: member.email,
-        subject: '🎉 Payment Successful - Membership Activated - TechFinit',
-        html: emailContent,
-      });
+      try {
+        await sendEmail({
+          to: member.email,
+          subject: '🎉 Payment Successful - Membership Activated - TechFinit',
+          html: emailContent,
+        });
+      } catch (emailError) {
+        console.error('Non-critical error: Failed to send activation success email to', member.email, emailError);
+      }
 
       console.log(`✅ Payment verified and certificate generated for NEW member: ${member.email}`);
 
@@ -312,11 +343,15 @@ const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignatu
         </html>
       `;
 
-      await sendEmail({
-        to: member.email,
-        subject: '🔄 Certificate Renewed Successfully - TechFinit',
-        html: emailContent,
-      });
+      try {
+        await sendEmail({
+          to: member.email,
+          subject: '🔄 Certificate Renewed Successfully - TechFinit',
+          html: emailContent,
+        });
+      } catch (emailError) {
+        console.error('Non-critical error: Failed to send renewal success email to', member.email, emailError);
+      }
 
       console.log(`✅ Payment verified and certificate renewed for member: ${member.email}`);
 
@@ -341,7 +376,7 @@ const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignatu
 
   } catch (error) {
     console.error('Error verifying payment:', error);
-    
+
     // If payment verification fails, mark payment as failed
     if (razorpayOrderId) {
       const member = await User.findOne({ 'payment.razorpayOrderId': razorpayOrderId });
@@ -350,7 +385,7 @@ const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignatu
         await member.save();
       }
     }
-    
+
     throw error;
   }
 };
@@ -359,7 +394,7 @@ const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignatu
 const getPaymentStatus = async (memberId) => {
   try {
     const member = await User.findById(memberId).lean();
-    
+
     if (!member) {
       throw new ApiError(404, 'Member not found');
     }
@@ -367,7 +402,7 @@ const getPaymentStatus = async (memberId) => {
     // NEW MEMBER - Not paid yet
     if (!member.certificate.generated) {
       const amounts = calculateAmount('new');
-      
+
       return {
         memberType: 'new',
         paymentRequired: true,
@@ -403,7 +438,7 @@ const getPaymentStatus = async (memberId) => {
 
     // Expiring soon or expired - Show renewal option
     const amounts = calculateAmount('renewal');
-    
+
     if (daysRemaining > 0) {
       // Expiring soon (1-30 days)
       return {
@@ -448,8 +483,67 @@ const getPaymentStatus = async (memberId) => {
   }
 };
 
+// 4. Get Transactions (Ledger)
+const getTransactions = async (memberId) => {
+  try {
+    const history = await Payment.find({ user: memberId }).sort({ createdAt: -1 }).lean();
+
+    return history.map(h => ({
+      id: h._id,
+      transactionId: h.razorpayPaymentId || h.razorpayOrderId,
+      amount: h.amount,
+      status: h.status,
+      date: h.createdAt,
+      paymentMethod: 'Razorpay',
+      description: h.paymentType === 'renewal' ? 'Annual Renewal' : 'New Registration',
+      receipt: h.razorpayOrderId
+    }));
+  } catch (error) {
+    console.error('Error getting transactions:', error);
+    throw error;
+  }
+}
+
+// 5. Native Webhook Process
+const processWebhook = async (reqBody, signature) => {
+  if (!verifyWebhookSignature(reqBody, signature)) {
+    throw new ApiError(400, 'Webhook Verification Failed!');
+  }
+
+  const event = reqBody.event;
+
+  if (event === 'payment.captured' || event === 'payment.failed') {
+    const paymentData = reqBody.payload.payment.entity;
+    const orderId = paymentData.order_id;
+    const paymentId = paymentData.id;
+
+    if (event === 'payment.failed') {
+      await Payment.updateOne({ razorpayOrderId: orderId }, { status: 'failed', razorpayPaymentId: paymentId });
+      return { success: true, processed: true, status: 'failed' };
+    }
+
+    // The `payment.captured` logic triggers verification again independently to guarantee it gets processed even if the browser disconnected.
+    // We do not have the user session, but we do have the order_id, payment_id and can manually trigger verified verification.
+
+    const existingPayment = await Payment.findOne({ razorpayOrderId: orderId });
+    if (existingPayment && existingPayment.status !== 'completed') {
+      // We can safely construct artificial verified execution: 
+      // Generating signature isn't strict here since we verified the webhook signature above. Let's just pass raw execution block directly if webhook is valid.
+      const secret = process.env.RAZORPAY_KEY_SECRET;
+      const generatedSignature = require('crypto').createHmac('sha256', secret).update(`${orderId}|${paymentId}`).digest('hex');
+      await verifyPayment(orderId, paymentId, generatedSignature);
+      return { success: true, processed: true, state: 'secured via webhook' };
+    }
+  }
+
+  return { success: true, processed: false };
+}
+
+
 module.exports = {
   createPaymentOrder,
   verifyPayment,
   getPaymentStatus,
+  getTransactions,
+  processWebhook
 };

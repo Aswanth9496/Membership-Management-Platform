@@ -58,11 +58,8 @@ export const MemberLayout = () => {
         { to: '/payments', icon: <CreditCard size={20} />, label: 'Payments' }
     ];
 
-    const fullName = profile?.fullName || user?.name || 'Alex Johnson';
-    const memberSince = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : '2021';
-
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-[#F8FAFC] text-slate-900 font-sans">
+        <div className="flex h-screen w-screen overflow-hidden bg-background text-slate-900 font-sans">
             {/* Sidebar Overlay for Mobile */}
             {sidebarOpen && (
                 <div
@@ -78,7 +75,7 @@ export const MemberLayout = () => {
             >
                 <div className="h-16 flex items-center px-6 border-b border-slate-200 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 text-white">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-white">
                             <Shield size={20} />
                         </div>
                         <h2 className="text-lg font-bold text-slate-900 tracking-tight">MemberPortal</h2>
@@ -100,7 +97,7 @@ export const MemberLayout = () => {
                                     to={link.to}
                                     className={({ isActive }) =>
                                         `flex items-center gap-3.5 px-3 py-2.5 rounded-xl font-semibold text-[14px] transition-all duration-200 ${isActive
-                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                                            ? 'bg-primary text-white shadow-md shadow-primary/20'
                                             : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                                         }`
                                     }
@@ -137,30 +134,17 @@ export const MemberLayout = () => {
                             <Menu size={24} />
                         </button>
                         <div className="flex items-center gap-2">
-                            <div className="flex items-center justify-center w-6 h-6 rounded bg-blue-600 text-white">
+                            <div className="flex items-center justify-center w-6 h-6 rounded bg-primary text-white">
                                 <Shield size={14} />
                             </div>
                             <span className="font-bold text-slate-900 tracking-tight">MemberPortal</span>
                         </div>
                     </div>
 
-                    <div className="hidden lg:flex w-full"></div> {/* Spacer for desktop so right elements are pulled right */}
-
-                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-5 w-full sm:w-auto ml-auto">
-                        <div className="flex items-center gap-3">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-[13px] font-bold text-slate-900 leading-tight">{fullName}</p>
-                                <p className="text-[11px] text-slate-500 font-medium">Premium Member since {memberSince}</p>
-                            </div>
-                            <button className="w-10 h-10 rounded-full bg-blue-100 border-2 border-white shadow-sm flex items-center justify-center text-blue-700 font-bold ml-1 hover:shadow-md transition-shadow">
-                                {fullName.charAt(0)}
-                            </button>
-                        </div>
-                    </div>
                 </header>
 
                 {/* Dynamic Page Content */}
-                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 bg-[#F8FAFC]">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 bg-background">
                     <div className="h-full animate-[fadeIn_0.3s_ease-out] max-w-7xl mx-auto">
                         <Outlet />
                     </div>

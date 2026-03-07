@@ -10,7 +10,9 @@ import {
   Menu,
   ChevronLeft,
   LayoutGrid,
-  UserX
+  UserX,
+  CreditCard,
+  UserCog
 } from 'lucide-react';
 
 export const AdminLayout = () => {
@@ -46,6 +48,8 @@ export const AdminLayout = () => {
     { to: '/admin/members', icon: <Users size={20} />, label: 'Members' },
     { to: '/admin/pending', icon: <Clock size={20} />, label: 'Pending' },
     { to: '/admin/events', icon: <Calendar size={20} />, label: 'Events' },
+    { to: '/admin/payments', icon: <CreditCard size={20} />, label: 'Payments' },
+    { to: '/admin/profile-updates', icon: <UserCog size={20} />, label: 'Profile Updates' },
     { to: '/admin/rejected-users', icon: <UserX size={20} />, label: 'Rejected' },
   ];
 
@@ -67,10 +71,10 @@ export const AdminLayout = () => {
         <div className="h-16 lg:h-20 flex items-center justify-between px-6 border-b border-slate-200 shrink-0">
           <div className="flex items-center gap-3">
             <div className="grid grid-cols-2 grid-rows-2 gap-[2px] w-7 h-7">
-              <div className="bg-blue-600 rounded-sm opacity-100"></div>
-              <div className="bg-blue-600 rounded-sm opacity-80"></div>
-              <div className="bg-blue-600 rounded-sm opacity-80"></div>
-              <div className="bg-blue-600 rounded-sm opacity-60"></div>
+              <div className="bg-primary rounded-sm opacity-100"></div>
+              <div className="bg-primary rounded-sm opacity-80"></div>
+              <div className="bg-primary rounded-sm opacity-80"></div>
+              <div className="bg-primary rounded-sm opacity-60"></div>
             </div>
             <div className="flex flex-col">
               <h2 className="text-lg font-bold text-slate-900 leading-tight tracking-tight">AdminPanel</h2>
@@ -94,7 +98,7 @@ export const AdminLayout = () => {
                   to={link.to}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${isActive
-                      ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-600/10'
+                      ? 'bg-slate-50 text-slate-700 shadow-sm ring-1 ring-primary/10'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`
                   }
@@ -125,10 +129,10 @@ export const AdminLayout = () => {
           {/* Mobile Branding (hidden on desktop) */}
           <div className="flex items-center gap-2.5 lg:hidden">
             <div className="grid grid-cols-2 grid-rows-2 gap-[2px] w-6 h-6">
-              <div className="bg-blue-600 rounded-sm opacity-100"></div>
-              <div className="bg-blue-600 rounded-sm opacity-80"></div>
-              <div className="bg-blue-600 rounded-sm opacity-80"></div>
-              <div className="bg-blue-600 rounded-sm opacity-60"></div>
+              <div className="bg-primary rounded-sm opacity-100"></div>
+              <div className="bg-primary rounded-sm opacity-80"></div>
+              <div className="bg-primary rounded-sm opacity-80"></div>
+              <div className="bg-primary rounded-sm opacity-60"></div>
             </div>
             <span className="font-bold text-slate-900 tracking-tight">AdminPanel</span>
           </div>
@@ -137,9 +141,9 @@ export const AdminLayout = () => {
             {/* Admin Info Display */}
             <div className="flex flex-col items-end text-right">
               <span className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">{adminName}</span>
-              <span className="text-[9px] sm:text-[10px] font-black text-blue-600 uppercase tracking-widest">{displayRole}</span>
+              <span className="text-[9px] sm:text-[10px] font-black text-primary uppercase tracking-widest">{displayRole}</span>
             </div>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm uppercase shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-50 text-primary flex items-center justify-center font-black text-sm uppercase shrink-0">
               {adminName.charAt(0)}
             </div>
 

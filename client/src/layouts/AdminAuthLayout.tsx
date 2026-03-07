@@ -15,10 +15,10 @@ export const AdminAuthLayout = () => {
             {/* Header */}
             <header className="bg-white py-4 px-6 md:px-12 flex items-center justify-between border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                    <div className="bg-blue-600 rounded-md w-8 h-8 flex items-center justify-center transform skew-x-[-10deg]"></div>
+                    <div className="bg-primary rounded-md w-8 h-8 flex items-center justify-center transform skew-x-[-10deg]"></div>
                     <span className="font-bold text-xl text-gray-900 font-sans tracking-tight">Admin Console</span>
                 </div>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                <button className="bg-primary hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
                     <HelpCircle size={16} />
                     <span>Support</span>
                 </button>

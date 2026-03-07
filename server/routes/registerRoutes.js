@@ -1,9 +1,10 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
-const { register } = require('../controllers/registerController');
+const { register, uploadDocument } = require('../controllers/registerController');
 const { registerValidationRules, validate } = require('../validators/registerValidator');
 const asyncHandler = require('../middlewares/asyncHandler');
+const upload = require('../middlewares/uploadMiddleware');
 
 const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -17,6 +18,13 @@ router.post(
   registerValidationRules,
   validate,
   asyncHandler(register)
+);
+
+// Upload document route (during registration)
+router.post(
+  '/documents/upload',
+  upload.single('document'),
+  asyncHandler(uploadDocument)
 );
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const ProfileUpdateRequest = require('../models/ProfileUpdateRequest');
 const { sendEmail } = require('../utils/emailService');
 const ApiError = require('../utils/ApiError');
 
@@ -36,24 +37,19 @@ const getChangedFields = (current, requested) => {
 // 1. Request Profile Update
 const requestProfileUpdate = async (memberId, requestedChanges) => {
   try {
-    // Find member
     const member = await User.findById(memberId);
-    if (!member) {
-      throw new ApiError(404, 'Member not found');
+    if (!member) throw new ApiError(404, 'Member not found');
+
+    const existingRequest = await ProfileUpdateRequest.findOne({ userId: memberId, status: 'pending' });
+    if (existingRequest) {
+      const pendingFor = Math.floor((new Date() - existingRequest.requestedAt) / (1000 * 60 * 60));
+      throw new ApiError(400, `You already have a pending profile update request. Please wait for admin review. (Pending for ${pendingFor} hours)`);
     }
 
-    // Check if already has pending request
-    if (member.profileChangeRequest.pending && member.profileChangeRequest.status === 'pending') {
-      const pendingFor = Math.floor((new Date() - member.profileChangeRequest.requestedAt) / (1000 * 60 * 60));
-      throw new ApiError(400, `You already have a pending profile update request. Please wait for admin review or cancel the existing request. (Pending for ${pendingFor} hours)`);
-    }
-
-    // Validate that there are actual changes
     if (!requestedChanges || Object.keys(requestedChanges).length === 0) {
-      throw new ApiError(400, 'No changes provided. Please provide fields to update.');
+      throw new ApiError(400, 'No changes provided.');
     }
 
-    // Get current profile for comparison
     const currentProfile = {
       member: member.member,
       location: member.location,
@@ -62,28 +58,20 @@ const requestProfileUpdate = async (memberId, requestedChanges) => {
       staff: member.staff,
     };
 
-    // Get changed fields
     const changedFields = getChangedFields(currentProfile, requestedChanges);
-
     if (changedFields.length === 0) {
-      throw new ApiError(400, 'No actual changes detected. The provided values match your current profile.');
+      throw new ApiError(400, 'No actual changes detected.');
     }
 
-    // Store change request
-    member.profileChangeRequest = {
-      pending: true,
-      requestedChanges,
-      requestedAt: new Date(),
-      status: 'pending',
-      reviewedBy: {},
-      reviewedAt: null,
-      rejectionReason: null,
-      remarks: requestedChanges.remarks || null,
-    };
+    const newRequest = new ProfileUpdateRequest({
+      userId: memberId,
+      currentData: currentProfile,
+      requestedData: requestedChanges,
+      status: 'pending'
+    });
 
-    await member.save();
+    await newRequest.save();
 
-    // Send email notification to member
     const emailContent = `
       <!DOCTYPE html>
       <html>
@@ -94,7 +82,6 @@ const requestProfileUpdate = async (memberId, requestedChanges) => {
           .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
           .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
           .changes { background: white; padding: 15px; border-left: 4px solid #667eea; margin: 15px 0; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
         </style>
       </head>
       <body>
@@ -105,43 +92,33 @@ const requestProfileUpdate = async (memberId, requestedChanges) => {
           <div class="content">
             <p>Hi <strong>${member.member?.fullName || 'Member'}</strong>,</p>
             <p>Your profile update request has been submitted successfully and is now pending admin review.</p>
-            
             <div class="changes">
-              <h3>Changes Requested:</h3>
-              <p><strong>${changedFields.length}</strong> field(s) will be updated after admin approval.</p>
+              <p><strong>${changedFields.length}</strong> field(s) pending update.</p>
             </div>
-
-            <p><strong>Status:</strong> Pending Admin Review</p>
-            <p><strong>Estimated Review Time:</strong> 24-48 hours</p>
-            <p>You will be notified once your request is reviewed.</p>
-          </div>
-          <div class="footer">
-            <p>© 2024 TechFinit. All rights reserved.</p>
           </div>
         </div>
       </body>
       </html>
     `;
 
-    await sendEmail({
-      to: member.email,
-      subject: 'Profile Update Request Submitted - TechFinit',
-      html: emailContent,
-    });
-
-    console.log(`✅ Profile update request submitted for member: ${member.email}`);
+    try {
+      await sendEmail({
+        to: member.email,
+        subject: 'Profile Update Request Submitted - TechFinit',
+        html: emailContent,
+      });
+    } catch (emailError) {
+      console.warn('Could not send confirmation email, but request was created.', emailError.message);
+    }
 
     return {
-      message: 'Profile update request submitted successfully. Waiting for admin approval.',
-      requestId: member._id,
+      message: 'Profile update request submitted successfully.',
+      requestId: newRequest._id,
       status: 'pending',
-      requestedAt: member.profileChangeRequest.requestedAt,
       totalChanges: changedFields.length,
-      changedFields: changedFields.map(f => f.field),
       estimatedReviewTime: '24-48 hours',
     };
   } catch (error) {
-    console.error('Error submitting profile update request:', error);
     throw error;
   }
 };
@@ -149,103 +126,36 @@ const requestProfileUpdate = async (memberId, requestedChanges) => {
 // 2. Get Profile Change Request Status
 const getChangeRequestStatus = async (memberId) => {
   try {
-    const member = await User.findById(memberId).lean();
-    if (!member) {
-      throw new ApiError(404, 'Member not found');
+    const request = await ProfileUpdateRequest.findOne({ userId: memberId }).sort({ requestedAt: -1 }).lean();
+
+    if (!request) {
+      return { hasPendingRequest: false, lastRequest: null, message: 'No recent requests' };
     }
 
-    const request = member.profileChangeRequest;
-
-    // No request at all
-    if (!request || !request.requestedAt) {
-      return {
-        hasPendingRequest: false,
-        lastRequest: null,
-        message: 'No pending or recent profile change requests',
-      };
-    }
-
-    // Pending request
-    if (request.pending && request.status === 'pending') {
+    if (request.status === 'pending') {
       const pendingFor = Math.floor((new Date() - new Date(request.requestedAt)) / (1000 * 60));
-      const hours = Math.floor(pendingFor / 60);
-      const minutes = pendingFor % 60;
-
-      // Get changed fields for display
-      const changedFields = [];
-      if (request.requestedChanges) {
-        const flattenObject = (obj, prefix = '') => {
-          for (const key in obj) {
-            if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
-              flattenObject(obj[key], `${prefix}${key}.`);
-            } else {
-              changedFields.push(`${prefix}${key}`);
-            }
-          }
-        };
-        flattenObject(request.requestedChanges);
-      }
-
       return {
         hasPendingRequest: true,
         message: 'You have a pending profile update request',
         request: {
           status: 'pending',
           requestedAt: request.requestedAt,
-          pendingFor: `${hours} hours ${minutes} minutes`,
-          requestedChanges: request.requestedChanges,
-          changedFields,
-          totalChanges: changedFields.length,
-          remarks: request.remarks,
-        },
-      };
-    }
-
-    // Approved request
-    if (request.status === 'approved') {
-      return {
-        hasPendingRequest: false,
-        message: 'Your last profile update request was approved',
-        lastRequest: {
-          status: 'approved',
-          requestedAt: request.requestedAt,
-          approvedAt: request.reviewedAt,
-          approvedBy: {
-            role: request.reviewedBy?.adminRole,
-            name: request.reviewedBy?.adminName,
-          },
-          changesApplied: true,
-          remarks: request.remarks,
-        },
-      };
-    }
-
-    // Rejected request
-    if (request.status === 'rejected') {
-      return {
-        hasPendingRequest: false,
-        message: 'Your last profile update request was rejected',
-        lastRequest: {
-          status: 'rejected',
-          requestedAt: request.requestedAt,
-          rejectedAt: request.reviewedAt,
-          rejectedBy: {
-            role: request.reviewedBy?.adminRole,
-            name: request.reviewedBy?.adminName,
-          },
-          rejectionReason: request.rejectionReason,
-          canResubmit: true,
+          pendingFor: `${Math.floor(pendingFor / 60)} hours ${pendingFor % 60} minutes`,
         },
       };
     }
 
     return {
       hasPendingRequest: false,
-      lastRequest: null,
-      message: 'No recent profile change requests',
+      message: `Your last request was ${request.status}`,
+      lastRequest: {
+        status: request.status,
+        requestedAt: request.requestedAt,
+        reviewedAt: request.reviewedAt,
+        rejectionReason: request.rejectionReason,
+      },
     };
   } catch (error) {
-    console.error('Error getting change request status:', error);
     throw error;
   }
 };
@@ -253,46 +163,101 @@ const getChangeRequestStatus = async (memberId) => {
 // 3. Cancel Pending Request
 const cancelChangeRequest = async (memberId) => {
   try {
-    const member = await User.findById(memberId);
-    if (!member) {
-      throw new ApiError(404, 'Member not found');
-    }
+    const request = await ProfileUpdateRequest.findOne({ userId: memberId, status: 'pending' });
+    if (!request) throw new ApiError(400, 'No pending request found');
 
-    const request = member.profileChangeRequest;
-
-    // Check if there's a pending request
-    if (!request || !request.pending || request.status !== 'pending') {
-      throw new ApiError(400, 'No pending profile update request found to cancel');
-    }
-
-    // Check if already reviewed
-    if (request.reviewedAt) {
-      throw new ApiError(400, `Cannot cancel request. It has already been reviewed by ${request.reviewedBy?.adminRole || 'admin'}.`);
-    }
-
-    // Clear the request
-    member.profileChangeRequest = {
-      pending: false,
-      requestedChanges: null,
-      requestedAt: null,
-      status: 'pending',
-      reviewedBy: {},
-      reviewedAt: null,
-      rejectionReason: null,
-      remarks: null,
-    };
-
-    await member.save();
-
-    console.log(`✅ Profile change request cancelled by member: ${member.email}`);
+    await ProfileUpdateRequest.findByIdAndDelete(request._id);
 
     return {
-      message: 'Profile update request cancelled successfully',
+      message: 'Request cancelled successfully',
       cancelledAt: new Date(),
-      canSubmitNewRequest: true,
     };
   } catch (error) {
-    console.error('Error cancelling change request:', error);
+    throw error;
+  }
+};
+
+// 4. Get all Profile Update Requests (Admin)
+const getAllProfileUpdateRequests = async () => {
+  try {
+    const requests = await ProfileUpdateRequest.find({})
+      .populate('userId', 'email member.fullName member.mobile establishment.name')
+      .sort({ requestedAt: -1 })
+      .lean();
+
+    return requests.map(r => ({
+      id: r._id,
+      userId: r.userId?._id,
+      userName: r.userId?.member?.fullName || 'N/A',
+      email: r.userId?.email || 'N/A',
+      phone: r.userId?.member?.mobile || 'N/A',
+      establishment: r.userId?.establishment?.name || 'N/A',
+      currentData: r.currentData,
+      requestedData: r.requestedData,
+      status: r.status,
+      requestedAt: r.requestedAt,
+      reviewedAt: r.reviewedAt,
+      rejectionReason: r.rejectionReason
+    }));
+  } catch (error) {
+    throw error;
+  }
+};
+
+// 5. Review Profile Update (Admin)
+const reviewProfileUpdate = async (requestId, action, adminRole, adminName, rejectionReason) => {
+  try {
+    const request = await ProfileUpdateRequest.findById(requestId);
+    if (!request) throw new ApiError(404, 'Request not found');
+    if (request.status !== 'pending') throw new ApiError(400, 'Request is already processed');
+
+    const member = await User.findById(request.userId);
+    if (!member) throw new ApiError(404, 'Member not found');
+
+    if (action === 'approve') {
+      request.status = 'approved';
+
+      // Merge requested data deeply into member profile
+      const flattenAndApply = (source, target) => {
+        for (const key in source) {
+          if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+            if (!target[key]) target[key] = {};
+            flattenAndApply(source[key], target[key]);
+          } else {
+            target[key] = source[key];
+          }
+        }
+      };
+
+      // Assuming requestedData matches root structure (member, location, establishment, etc)
+      flattenAndApply(request.requestedData, member);
+      await member.save();
+    } else {
+      request.status = 'rejected';
+      request.rejectionReason = rejectionReason;
+    }
+
+    request.reviewedAt = new Date();
+    // Assuming we do not have admin ID currently passed properly, skipping ref assignment or just leaving it empty unless needed.
+
+    await request.save();
+
+    // Notify user
+    try {
+      await sendEmail({
+        to: member.email,
+        subject: `Profile Update Request ${action === 'approve' ? 'Approved' : 'Rejected'} - TechFinit`,
+        html: `<p>Hi ${member.member?.fullName || 'Member'},</p><p>Your profile update request has been <b>${action}d</b>.</p>`
+      });
+    } catch (emailError) {
+      console.warn('Could not send notification email, but request was reviewed.', emailError.message);
+    }
+
+    return {
+      message: `Profile update request ${action}d successfully`,
+      status: request.status
+    };
+  } catch (error) {
     throw error;
   }
 };
@@ -301,4 +266,6 @@ module.exports = {
   requestProfileUpdate,
   getChangeRequestStatus,
   cancelChangeRequest,
+  getAllProfileUpdateRequests,
+  reviewProfileUpdate
 };

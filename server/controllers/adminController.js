@@ -94,10 +94,24 @@ const getDashboard = async (req, res) => {
   );
 };
 
+// Get all event payments
+const getAllPayments = async (req, res) => {
+  const { getAllEventPayments } = require('../services/eventService');
+
+  const payments = await getAllEventPayments();
+
+  successResponse(
+    res,
+    payments,
+    'All payments retrieved successfully'
+  );
+};
+
 module.exports = {
   register,
   login,
   logout,
   getProfile,
   getDashboard,
+  getAllPayments,
 };

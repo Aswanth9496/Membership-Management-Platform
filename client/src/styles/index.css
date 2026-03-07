@@ -3,10 +3,24 @@
 
 @theme {
     --font-sans: 'Inter', sans-serif;
+    
+    /* Semantic Colors */
+    --color-primary: var(--color-slate-800);
+    --color-primary-hover: var(--color-slate-700);
+    --color-primary-light: var(--color-slate-100);
+    
+    --color-background: #f8f9fc;
+    --color-card: #ffffff;
+    --color-border: var(--color-slate-200);
+    --color-border-hover: var(--color-slate-300);
+    
+    /* Radii */
+    --radius-card: 1rem;
+    --radius-button: 0.5rem;
 }
 
 @layer base {
     body {
-        @apply bg-gray-50 text-gray-900 font-sans antialiased;
+        @apply bg-background text-slate-800 font-sans antialiased;
     }
 }

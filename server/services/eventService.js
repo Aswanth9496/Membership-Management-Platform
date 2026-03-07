@@ -321,6 +321,62 @@ const getEventRegistrations = async (eventId) => {
   }
 };
 
+// Get all event payments across all events (Admin view)
+const getAllEventPayments = async () => {
+  try {
+    const events = await Event.find({ 'registrations.0': { $exists: true } })
+      .populate('registrations.member', 'email member.fullName member.mobile')
+      .select('title isPaid price registrations eventDate.startDate')
+      .lean();
+
+    let transactions = [];
+    events.forEach(event => {
+      event.registrations.forEach(reg => {
+        const payment = reg.payment || {};
+
+        // Ensure free events mark status properly if not explicitly stated
+        let status = payment.status || 'pending';
+        if (!event.isPaid && status === 'pending') {
+          status = 'completed';
+        }
+
+        let actualAmount = typeof payment.amount === 'number' ? payment.amount : (event.isPaid ? (event.price || 0) : 0);
+        let pMethod = payment.paymentMethod && payment.paymentMethod !== 'other'
+          ? payment.paymentMethod
+          : (event.isPaid ? 'Online' : 'Free');
+        if (!event.isPaid) pMethod = 'Free'; // Force method to be Free if event is strictly free 
+
+        // Filter out free events and registrations with 0 amount
+        if (event.isPaid && actualAmount > 0 && pMethod !== 'Free') {
+          transactions.push({
+            id: reg._id,
+            transactionId: payment.transactionId || `TXN-${reg._id.toString().substring(18).toUpperCase()}`,
+            eventName: event.title,
+            participantName: reg.member?.member?.fullName || 'N/A',
+            email: reg.member?.email || 'N/A',
+            phoneNumber: reg.member?.member?.mobile || 'N/A',
+            amountPaid: actualAmount,
+            paymentMethod: pMethod,
+            paymentStatus: status,
+            paymentDate: payment.paidAt || reg.registeredAt,
+            registrationId: reg._id,
+            eventId: event._id,
+            orderId: reg.confirmationNumber || 'N/A'
+          });
+        }
+      });
+    });
+
+    // Sort transactions by date descending
+    transactions.sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate));
+
+    return transactions;
+  } catch (error) {
+    console.error('Error fetching all event payments:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   createEvent,
   getAllEvents,
@@ -328,4 +384,5 @@ module.exports = {
   updateEvent,
   deleteEvent,
   getEventRegistrations,
+  getAllEventPayments,
 };

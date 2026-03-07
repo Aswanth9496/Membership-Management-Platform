@@ -113,9 +113,45 @@ const downloadCertificate = async (req, res) => {
   }
 };
 
+// Upload Missing Document
+const uploadMissingDocument = async (req, res) => {
+  const memberId = req.member._id;
+  const { documentType } = req.body;
+
+  if (!['agencyAddressProof', 'shopPhoto', 'businessCard'].includes(documentType)) {
+    return res.status(400).json({ success: false, message: 'Invalid document type' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No file uploaded' });
+  }
+
+  const member = await User.findById(memberId);
+  if (!member) {
+    return res.status(404).json({ success: false, message: 'Member not found' });
+  }
+
+  if (!member.documents) {
+    member.documents = {};
+  }
+
+  // Construct local URL accessible via the static /uploads middleware we just created
+  const fileUrl = `${process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`}/uploads/${req.file.filename}`;
+
+  member.documents[documentType] = {
+    url: fileUrl,
+    publicId: req.file.filename,
+    uploadedAt: new Date()
+  };
+
+  await member.save();
+  successResponse(res, null, 'Document uploaded successfully');
+};
+
 module.exports = {
   requestUpdate,
   getStatus,
   cancelRequest,
   downloadCertificate,
+  uploadMissingDocument,
 };

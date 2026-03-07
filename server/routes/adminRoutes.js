@@ -1,9 +1,9 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
-const { register, login, logout, getProfile, getDashboard } = require('../controllers/adminController');
+const { register, login, logout, getProfile, getDashboard, getAllPayments } = require('../controllers/adminController');
 const { forgotPassword, verifyOTP, resetPasswordController } = require('../controllers/forgotPasswordController');
-const { getPendingApprovalsController, getPendingApprovalsByRoleController, updateMemberApprovalController, deleteUserController, getApprovedOrRejectedMembersController, toggleMemberBlockStatusController, reviewProfileUpdateController } = require('../controllers/memberController');
+const { getPendingApprovalsController, getPendingApprovalsByRoleController, updateMemberApprovalController, deleteUserController, getApprovedOrRejectedMembersController, toggleMemberBlockStatusController, reviewProfileUpdateController, getProfileUpdateRequestsController } = require('../controllers/memberController');
 const { adminRegisterValidationRules, adminLoginValidationRules, validate } = require('../validators/adminValidator');
 const { forgotPasswordValidationRules, verifyOTPValidationRules, resetPasswordValidationRules, validate: validateForgotPassword } = require('../validators/forgotPasswordValidator');
 const { approvalValidationRules, validate: validateApproval } = require('../validators/memberValidator');
@@ -120,6 +120,12 @@ router.put('/members/:id/block', authenticateAdmin, asyncHandler(toggleMemberBlo
 router.delete('/members/:id', authenticateAdmin, asyncHandler(deleteUserController));
 
 // Review Profile Update Request
-router.put('/members/:id/profile-update', authenticateAdmin, asyncHandler(reviewProfileUpdateController));
+router.put('/profile-updates/:id/review', authenticateAdmin, asyncHandler(reviewProfileUpdateController));
+
+// Get All Profile Update Requests
+router.get('/profile-updates', authenticateAdmin, asyncHandler(getProfileUpdateRequestsController));
+
+// Get All Payments
+router.get('/payments', authenticateAdmin, asyncHandler(getAllPayments));
 
 module.exports = router;

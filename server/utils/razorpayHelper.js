@@ -1,11 +1,17 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
-// Initialize Razorpay instance
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Initialize Razorpay instance ONLY when first called to ensure process.env is injected by server.js first
+let razorpayInstance = null;
+const getRazorpayInstance = () => {
+  if (!razorpayInstance) {
+    razorpayInstance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  }
+  return razorpayInstance;
+};
 
 // Payment configuration
 const PAYMENT_CONFIG = {
@@ -37,7 +43,8 @@ const calculateAmount = (type) => {
 // Create Razorpay order
 const createOrder = async (amount, receipt, notes = {}) => {
   try {
-    const order = await razorpay.orders.create({
+    const rzp = getRazorpayInstance();
+    const order = await rzp.orders.create({
       amount: amount * 100, // Convert to paise (₹1 = 100 paise)
       currency: 'INR',
       receipt: receipt,
@@ -46,8 +53,14 @@ const createOrder = async (amount, receipt, notes = {}) => {
 
     return order;
   } catch (error) {
-    console.error('❌ Razorpay order creation failed:', error);
-    throw new Error('Failed to create payment order. Please try again.');
+    let rzpError = 'Failed to create payment order.';
+    if (error && error.error && error.error.description) {
+      rzpError = error.error.description;
+    } else if (error && error.message) {
+      rzpError = error.message;
+    }
+    console.error('❌ Razorpay order creation failed:', rzpError, error);
+    throw new Error(rzpError);
   }
 };
 
@@ -55,7 +68,7 @@ const createOrder = async (amount, receipt, notes = {}) => {
 const verifyPaymentSignature = (orderId, paymentId, signature) => {
   try {
     const secret = process.env.RAZORPAY_KEY_SECRET;
-    
+
     // Create expected signature
     const generatedSignature = crypto
       .createHmac('sha256', secret)
@@ -74,7 +87,7 @@ const verifyPaymentSignature = (orderId, paymentId, signature) => {
 const verifyWebhookSignature = (webhookBody, webhookSignature) => {
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-    
+
     const expectedSignature = crypto
       .createHmac('sha256', secret)
       .update(JSON.stringify(webhookBody))
@@ -93,7 +106,7 @@ const getRazorpayKeyId = () => {
 };
 
 module.exports = {
-  razorpay,
+  getRazorpayInstance,
   PAYMENT_CONFIG,
   calculateAmount,
   createOrder,

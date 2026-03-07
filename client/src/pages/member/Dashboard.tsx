@@ -42,7 +42,7 @@ export default function Dashboard() {
             {/* Header section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
                 <div>
-                    <p className="text-[11px] font-bold text-blue-600 tracking-[0.15em] uppercase mb-2">Overview</p>
+                    <p className="text-[11px] font-bold text-primary tracking-[0.15em] uppercase mb-2">Overview</p>
                     <h1 className="text-[32px] sm:text-[40px] leading-none font-extrabold tracking-tight text-slate-900">
                         Welcome back, {firstName}
                     </h1>
@@ -86,7 +86,7 @@ export default function Dashboard() {
             {/* Top Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-8 sm:mb-10">
                 <div onClick={() => navigate('/certificate')} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col items-center justify-center gap-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer py-8">
-                    <div className="text-blue-600">
+                    <div className="text-primary">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                             <polyline points="7 10 12 15 17 10" />
@@ -97,14 +97,14 @@ export default function Dashboard() {
                 </div>
 
                 <div onClick={() => navigate('/certificate')} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col items-center justify-center gap-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer py-8">
-                    <div className="text-blue-600">
+                    <div className="text-primary">
                         <RefreshCw size={28} />
                     </div>
                     <span className="font-bold text-[15px]">Renew Membership</span>
                 </div>
 
                 <div onClick={() => navigate('/events')} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col items-center justify-center gap-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer py-8">
-                    <div className="text-blue-600">
+                    <div className="text-primary">
                         <Calendar size={28} />
                     </div>
                     <span className="font-bold text-[15px]">Upcoming Events</span>
@@ -118,10 +118,10 @@ export default function Dashboard() {
                     <div className="mb-10">
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-lg font-bold flex items-center gap-2.5">
-                                <Calendar size={20} className="text-blue-600" />
+                                <Calendar size={20} className="text-primary" />
                                 Registered Upcoming Events
                             </h2>
-                            <button onClick={() => navigate('/events')} className="text-[13px] font-bold text-blue-600 hover:text-blue-700">View All</button>
+                            <button onClick={() => navigate('/events')} className="text-[13px] font-bold text-primary hover:text-slate-700">View All</button>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
@@ -129,7 +129,7 @@ export default function Dashboard() {
                                 <div className="sm:col-span-2 p-8 text-center bg-white border border-slate-200 border-dashed rounded-2xl">
                                     <Calendar className="mx-auto h-8 w-8 text-slate-300 mb-3" />
                                     <p className="text-sm font-medium text-slate-500">You haven't registered for any upcoming events.</p>
-                                    <button onClick={() => navigate('/events')} className="mt-4 text-xs font-bold text-blue-600 hover:underline">Explore Events</button>
+                                    <button onClick={() => navigate('/events')} className="mt-4 text-xs font-bold text-primary hover:underline">Explore Events</button>
                                 </div>
                             ) : (
                                 myEvents.slice(0, 2).map((event: any, idx: number) => {
@@ -146,7 +146,7 @@ export default function Dashboard() {
                                                     <span className="text-[18px] font-black leading-none text-slate-900">{day}</span>
                                                 </div>
                                                 <div className="mt-auto">
-                                                    <span className="bg-blue-600 text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md shadow-sm">
+                                                    <span className="bg-primary text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md shadow-sm">
                                                         {event.eventType || 'Event'}
                                                     </span>
                                                 </div>
@@ -172,13 +172,13 @@ export default function Dashboard() {
                     <div>
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-lg font-bold flex items-center gap-2.5">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                                     <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
                                     <line x1="2" y1="10" x2="22" y2="10" />
                                 </svg>
                                 Recent Payments
                             </h2>
-                            <button className="text-[13px] font-bold text-blue-600 hover:text-blue-700">View History</button>
+                            <button className="text-[13px] font-bold text-primary hover:text-slate-700">View History</button>
                         </div>
 
                         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">

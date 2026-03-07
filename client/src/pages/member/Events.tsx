@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api/axios';
 import Swal from 'sweetalert2';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
 
 interface Event {
@@ -32,6 +33,7 @@ interface Event {
 }
 
 export default function Events() {
+    const navigate = useNavigate();
     const { user } = useAppSelector((state: any) => state.auth);
     const [events, setEvents] = useState<Event[]>([]);
     const [myEvents, setMyEvents] = useState<string[]>([]);
@@ -225,7 +227,7 @@ export default function Events() {
     if (loading) {
         return (
             <div className="flex h-64 items-center justify-center">
-                <Loader2 className="animate-spin text-blue-600" size={32} />
+                <Loader2 className="animate-spin text-primary" size={32} />
             </div>
         );
     }
@@ -235,18 +237,18 @@ export default function Events() {
             {/* Header section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-2">
                 <div>
-                    <p className="text-[11px] font-bold text-blue-600 tracking-[0.15em] uppercase mb-2">Activities</p>
+                    <p className="text-[11px] font-bold text-primary tracking-[0.15em] uppercase mb-2">Activities</p>
                     <h1 className="text-[32px] sm:text-[40px] leading-none font-bold tracking-tight text-slate-900">
                         Event Registry
                     </h1>
                 </div>
 
                 <div className="relative group w-full md:w-72 shrink-0">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-500 transition-colors" size={18} />
                     <input
                         type="text"
                         placeholder="Search summits & events..."
-                        className="pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none w-full shadow-sm"
+                        className="pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-slate-1000/10 focus:border-slate-500 outline-none w-full shadow-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -303,8 +305,8 @@ export default function Events() {
                                     <div className="flex justify-between items-start mb-2 gap-2">
                                         <h3 className="font-bold text-[16px] leading-snug line-clamp-2">{event.title}</h3>
                                         {event.isPaid ? (
-                                            <div className="flex items-center gap-1.5 bg-blue-50 text-blue-600 text-xs font-black px-2.5 py-1 rounded-md shrink-0 border border-blue-200 tracking-widest">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                            <div className="flex items-center gap-1.5 bg-slate-50 text-primary text-xs font-black px-2.5 py-1 rounded-md shrink-0 border border-slate-200 tracking-widest">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
                                                 Paid - ₹{event.price}
                                             </div>
                                         ) : (
@@ -347,11 +349,28 @@ export default function Events() {
                                                 <button disabled className="bg-slate-100 text-slate-400 font-bold text-[13px] py-2 px-4 rounded-xl cursor-not-allowed">
                                                     Event Full
                                                 </button>
+                                            ) : (!user?.status || user?.status !== 'approved' || !user?.certificate?.generated) ? (
+                                                <button
+                                                    onClick={() => {
+                                                        Swal.fire('Membership Inactive', 'Your membership is not active. Please complete membership payment to register for events.', 'warning');
+                                                        navigate('/membership/payments');
+                                                    }}
+                                                    className="bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 font-bold text-[13px] py-2 px-4 rounded-xl transition-colors"
+                                                >
+                                                    Pay to Register
+                                                </button>
+                                            ) : (user?.certificate?.expiryDate && new Date(user.certificate.expiryDate) < new Date()) ? (
+                                                <button
+                                                    onClick={() => navigate('/membership/payments')}
+                                                    className="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 font-bold text-[13px] py-2 px-4 rounded-xl transition-colors"
+                                                >
+                                                    Renew Membership
+                                                </button>
                                             ) : (
                                                 <button
                                                     onClick={() => openRegisterModal(event)}
                                                     disabled={isRegistering}
-                                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[13px] py-2 px-4 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm shadow-blue-200 disabled:opacity-70"
+                                                    className="bg-primary hover:bg-slate-700 text-white font-bold text-[13px] py-2 px-4 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-70"
                                                 >
                                                     {isRegistering ? (
                                                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -392,7 +411,7 @@ export default function Events() {
                                         required
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-1000/20 focus:border-slate-500 transition-all"
                                     />
                                 </div>
                                 <div>
@@ -402,7 +421,7 @@ export default function Events() {
                                         required
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-1000/20 focus:border-slate-500 transition-all"
                                     />
                                 </div>
                                 <div>
@@ -412,7 +431,7 @@ export default function Events() {
                                         required
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-1000/20 focus:border-slate-500 transition-all"
                                     />
                                 </div>
                             </div>
@@ -427,7 +446,7 @@ export default function Events() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200 flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors shadow-sm shadow-sm flex items-center justify-center gap-2"
                                 >
                                     Proceed <ArrowRight size={16} />
                                 </button>

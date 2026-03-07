@@ -18,10 +18,20 @@ const registerForEvent = async (eventId, memberId, memberInfo = {}) => {
             throw new ApiError(404, 'Event not found');
         }
 
-        // 2. Check if member is approved (either verified by 3 admins or fully approved with certificate)
+        // 2. Check strict membership rules for event registration
         const member = await User.findById(memberId);
-        if (!member || !['verified', 'approved'].includes(member.status)) {
-            throw new ApiError(403, 'Your membership is not yet approved. Only approved members can register for events.');
+
+        if (!member) {
+            throw new ApiError(404, 'Member not found');
+        }
+
+        const isApproved = member.status === 'approved';
+        const hasPaid = member.certificate && member.certificate.generated;
+        const expiryDate = member.certificate?.expiryDate ? new Date(member.certificate.expiryDate) : null;
+        const isNotExpired = expiryDate && expiryDate >= new Date();
+
+        if (!isApproved || !hasPaid || !isNotExpired) {
+            throw new ApiError(403, 'Your membership is not active. Please complete membership payment to register for events.');
         }
 
         // 3. Validate event status and registration window

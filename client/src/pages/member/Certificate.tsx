@@ -12,9 +12,13 @@ import {
     AlertTriangle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { useRazorpayPayment } from '../../hooks/useRazorpayPayment';
+import { useAppSelector } from '../../store/hooks';
 
 export default function MemberCertificate() {
     const navigate = useNavigate();
+    const { user } = useAppSelector((state: any) => state.auth);
+    const { isProcessing, handlePayment } = useRazorpayPayment();
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState(false);
@@ -68,13 +72,18 @@ export default function MemberCertificate() {
     };
 
     const handleRenew = () => {
-        navigate('/payments');
+        handlePayment({
+            user,
+            onSuccess: () => {
+                fetchProfile(); // Refresh the active certificate state dynamically
+            }
+        });
     };
 
     if (loading) {
         return (
             <div className="flex h-64 items-center justify-center">
-                <Loader2 className="animate-spin text-blue-600" size={32} />
+                <Loader2 className="animate-spin text-primary" size={32} />
             </div>
         );
     }
@@ -115,7 +124,7 @@ export default function MemberCertificate() {
             {/* Header section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
                 <div>
-                    <p className="text-[11px] font-bold text-blue-600 tracking-[0.15em] uppercase mb-2">My Documents</p>
+                    <p className="text-[11px] font-bold text-primary tracking-[0.15em] uppercase mb-2">My Documents</p>
                     <h1 className="text-[32px] sm:text-[40px] leading-none font-extrabold tracking-tight text-slate-900">
                         Certificate Hub
                     </h1>
@@ -123,8 +132,8 @@ export default function MemberCertificate() {
 
                 <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 flex items-center gap-4 shadow-sm shrink-0">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border ${status === 'approved' ? 'bg-[#E8F8EE] border-emerald-100' :
-                            status === 'verified' ? 'bg-amber-50 border-amber-100' :
-                                'bg-slate-50 border-slate-200'
+                        status === 'verified' ? 'bg-amber-50 border-amber-100' :
+                            'bg-slate-50 border-slate-200'
                         }`}>
                         {status === 'approved' ? (
                             <CheckCircle2 className="text-[#05A660]" size={20} fill="currentColor" stroke="white" strokeWidth={1} />
@@ -176,9 +185,11 @@ export default function MemberCertificate() {
                                     Your membership is verified. Please complete payment to activate and generate certificate.
                                 </p>
                                 <button
-                                    onClick={() => navigate('/payments')}
-                                    className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-[13px] font-bold rounded-xl transition-all shadow-sm shadow-amber-200"
+                                    onClick={handleRenew}
+                                    disabled={isProcessing}
+                                    className="w-full sm:w-auto px-6 py-3 flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-[13px] font-bold rounded-xl transition-all shadow-sm shadow-amber-200 disabled:opacity-70"
                                 >
+                                    {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Complete Membership Payment
                                 </button>
                             </div>
@@ -202,7 +213,7 @@ export default function MemberCertificate() {
                                     <button
                                         onClick={handleDownload}
                                         disabled={downloading}
-                                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-xl text-[13px] font-bold hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-white rounded-xl text-[13px] font-bold hover:bg-slate-700 transition-all shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download size={18} />}
                                         {downloading ? 'Encrypting & Downloading...' : 'Download Certificate E-Copy'}
@@ -243,8 +254,10 @@ export default function MemberCertificate() {
                                 <p className="text-[13px] text-rose-700 font-medium mb-5 px-4">Your current membership cycle has concluded. Reactivate your dashboard functionalities by renewing.</p>
                                 <button
                                     onClick={handleRenew}
-                                    className="px-6 py-3 bg-rose-600 text-white rounded-xl text-[13px] font-bold hover:bg-rose-700 transition-all shadow-sm shadow-rose-200 w-full"
+                                    disabled={isProcessing}
+                                    className="px-6 py-3 flex items-center justify-center gap-2 bg-rose-600 text-white rounded-xl text-[13px] font-bold hover:bg-rose-700 transition-all shadow-sm shadow-rose-200 w-full disabled:opacity-70"
                                 >
+                                    {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Renew Membership Now
                                 </button>
                             </div>
@@ -255,8 +268,10 @@ export default function MemberCertificate() {
                                 <p className="text-[13px] text-amber-700 font-medium mb-5 px-4">Your membership is approaching expiration. Ensure uninterrupted access by preparing to renew.</p>
                                 <button
                                     onClick={handleRenew}
-                                    className="px-6 py-3 bg-amber-500 text-white rounded-xl text-[13px] font-bold hover:bg-amber-600 transition-all shadow-sm shadow-amber-200 w-full"
+                                    disabled={isProcessing}
+                                    className="px-6 py-3 flex items-center justify-center gap-2 bg-amber-500 text-white rounded-xl text-[13px] font-bold hover:bg-amber-600 transition-all shadow-sm shadow-amber-200 w-full disabled:opacity-70"
                                 >
+                                    {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Renew Subscription
                                 </button>
                             </div>

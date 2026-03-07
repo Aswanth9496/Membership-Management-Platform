@@ -153,7 +153,13 @@ const toggleMemberBlockStatusController = async (req, res) => {
   );
 };
 
-const { reviewProfileUpdate } = require('../services/memberProfileService');
+const { reviewProfileUpdate, getAllProfileUpdateRequests } = require('../services/memberProfileService');
+
+// Get All Profile Update Requests
+const getProfileUpdateRequestsController = async (req, res) => {
+  const data = await getAllProfileUpdateRequests();
+  successResponse(res, data, 'Profile update requests retrieved successfully');
+};
 
 // Review Profile Update Request
 const reviewProfileUpdateController = async (req, res) => {
@@ -184,4 +190,5 @@ module.exports = {
   getApprovedOrRejectedMembersController,
   toggleMemberBlockStatusController,
   reviewProfileUpdateController,
+  getProfileUpdateRequestsController,
 };
