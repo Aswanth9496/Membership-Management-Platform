@@ -1,4 +1,4 @@
-const { createPaymentOrder, verifyPayment, getPaymentStatus, getTransactions, processWebhook } = require('../services/paymentService');
+const { createPaymentOrder, verifyPayment, getPaymentStatus, getTransactions, processWebhook, processDummyPayment } = require('../services/paymentService');
 const { successResponse } = require('../utils/responseHelper');
 
 // Get Payment Status
@@ -12,6 +12,7 @@ const getStatus = async (req, res) => {
 
 // Create Payment Order
 const createOrder = async (req, res) => {
+  console.log("Creating order...");
   const memberId = req.member._id;
 
   const result = await createPaymentOrder(memberId);
@@ -42,10 +43,18 @@ const handleWebhook = async (req, res) => {
   res.status(200).json(result); // Webhooks typically just respond 200 OK cleanly
 };
 
+// Handle dummy success payment (bypass)
+const dummyPayment = async (req, res) => {
+  const memberId = req.member._id;
+  const result = await processDummyPayment(memberId);
+  successResponse(res, result, result.message);
+};
+
 module.exports = {
   getStatus,
   createOrder,
   verify,
   getTransactionsList,
-  handleWebhook
+  handleWebhook,
+  dummyPayment
 };

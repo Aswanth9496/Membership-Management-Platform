@@ -75,8 +75,10 @@ const createPaymentOrder = async (memberId) => {
       memberName: member.member?.fullName || 'Member',
       paymentType,
     };
-
+    console.log("Creating order with amounts:", amounts);
     const order = await createOrder(amounts.totalAmount, receipt, notes);
+
+    console.log("Order created:", order);
 
     // Track payment authentically in Payment table
     await Payment.create({
@@ -540,10 +542,52 @@ const processWebhook = async (reqBody, signature) => {
 }
 
 
+// 6. Dummy Success Payment (Bypass for testing)
+const processDummyPayment = async (memberId) => {
+  try {
+    const member = await User.findById(memberId);
+    if (!member) {
+      throw new ApiError(404, 'Member not found');
+    }
+
+    const issueDate = new Date();
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 365); // 365 days validity
+
+    // Update status and payment details
+    member.status = 'approved';
+    member.payment.status = 'completed';
+    member.payment.type = 'renewal'; // As requested by user
+    member.payment.paymentDate = issueDate;
+    member.payment.paymentMethod = 'dummy_bypass';
+
+    // Generate certificate
+    member.certificate.generated = true;
+    member.certificate.certificateNumber = `DUMMY-${Date.now()}`;
+    member.certificate.issueDate = issueDate;
+    member.certificate.expiryDate = expiryDate;
+    member.certificate.status = 'active';
+
+    await member.save();
+
+    console.log(`✅ Dummy payment bypass triggered for member: ${member.email}`);
+
+    return {
+      message: 'Payment completed successfully (Dummy Bypass)',
+      memberStatus: member.status,
+      certificate: member.certificate
+    };
+  } catch (error) {
+    console.error('Error processing dummy payment:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   createPaymentOrder,
   verifyPayment,
   getPaymentStatus,
   getTransactions,
-  processWebhook
+  processWebhook,
+  processDummyPayment
 };

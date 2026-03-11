@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getStatus, createOrder, verify, getTransactionsList, handleWebhook } = require('../controllers/paymentController');
+const { getStatus, createOrder, verify, getTransactionsList, handleWebhook, dummyPayment } = require('../controllers/paymentController');
 const { verifyPaymentValidationRules, validate } = require('../validators/paymentValidator');
 const asyncHandler = require('../middlewares/asyncHandler');
 const { authenticateMember } = require('../middlewares/authMiddleware');
@@ -17,7 +17,9 @@ router.post('/verify', verifyPaymentValidationRules, validate, asyncHandler(veri
 // Get Transactions (Protected)
 router.get('/transactions', authenticateMember, asyncHandler(getTransactionsList));
 
-// Razorpay Webhook (Publicly exposed secure hook from Razorpay servers)
+// Dummy Success Bypass (Protected)
+router.post('/dummy-success', authenticateMember, asyncHandler(dummyPayment));
+
 router.post('/webhook', asyncHandler(handleWebhook));
 
 module.exports = router;

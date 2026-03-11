@@ -72,6 +72,8 @@ export default function MemberCertificate() {
     };
 
     const handleRenew = () => {
+
+        console.log(" trying payment...");
         handlePayment({
             user,
             onSuccess: () => {

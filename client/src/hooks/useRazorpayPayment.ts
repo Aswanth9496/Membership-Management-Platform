@@ -26,7 +26,9 @@ export const useRazorpayPayment = () => {
             setIsProcessing(true);
 
             // 1. Create Order
+            console.log("Creating order...");
             const orderRes = await api.post('/api/payment/create-order');
+            console.log("Order created:", orderRes.data);
             const data = orderRes.data.data;
 
             // 2. Load Razorpay script

@@ -23,10 +23,10 @@ const login = async (req, res) => {
   const adminData = formatAdminResponse(admin);
 
   // Generate JWT token for 30 days
-  const token = generateToken(admin._id, '30d');
+  const token = generateToken(admin._id, 'admin', '30d');
 
   // Set httpOnly cookie (secure for web browsers)
-  res.cookie('token', token, {
+  res.cookie('admintoken', token, {
     httpOnly: true, // Prevents JavaScript access (XSS protection)
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     sameSite: 'strict', // CSRF protection
@@ -73,7 +73,7 @@ const getDashboard = async (req, res) => {
 
   // Get pagination params from query
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
+  const limit = parseInt(req.query.limit) || 5;
   const status = req.query.status || 'submitted';
 
   // Validate pagination params

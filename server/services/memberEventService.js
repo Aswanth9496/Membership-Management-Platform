@@ -213,7 +213,7 @@ const getMyRegisteredEvents = async (memberId) => {
             'registrations.payment.status': 'completed',
             isActive: true
         })
-            .select('title eventType eventDate venue registration status registrations')
+            .select('title eventType eventDate venue registration status registrations isPaid price')
             .lean();
 
         // Transform and return only the relevant registration info for the member
@@ -223,12 +223,8 @@ const getMyRegisteredEvents = async (memberId) => {
             );
 
             return {
-                id: event._id,
-                title: event.title,
-                eventType: event.eventType,
-                eventDate: event.eventDate,
-                venue: event.venue,
-                status: event.status,
+                ...event,
+                _id: event._id, // Ensure _id is present
                 registrationDetails: {
                     registeredAt: myRegistration.registeredAt,
                     paymentStatus: myRegistration.payment.status,

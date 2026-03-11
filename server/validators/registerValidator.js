@@ -10,6 +10,13 @@ exports.registerValidationRules = [
   body('establishment.officialClassification').notEmpty().withMessage('Official classification is required').isIn(['Proprietorship', 'Partnership', 'Private Limited', 'Public Limited', 'LLP', 'Other']).withMessage('Invalid official classification'),
   body('establishment.businessType').notEmpty().withMessage('Business type is required').isIn(['Retail', 'Wholesale', 'Service', 'Manufacturing', 'Trading', 'Other']).withMessage('Invalid business type'),
   body('establishment.officialEmail').trim().notEmpty().withMessage('Official email is required').isEmail().withMessage('Please provide a valid official email').normalizeEmail(),
+  body('establishment.gstRegistered').optional().isBoolean().withMessage('GST registration must be a boolean'),
+  body('establishment.gstNumber').optional().trim().custom((value, { req }) => {
+    if (req.body.establishment?.gstRegistered === true && !value) {
+      throw new Error('GST number is required if registered');
+    }
+    return true;
+  }),
   body('location.district').trim().notEmpty().withMessage('District is required'),
   body('location.region').trim().notEmpty().withMessage('Region is required'),
   body('location.city').trim().notEmpty().withMessage('City is required'),
@@ -20,6 +27,17 @@ exports.registerValidationRules = [
   body('member.fullName').trim().notEmpty().withMessage('Member name is required'),
   body('member.dateOfBirth').notEmpty().withMessage('Date of birth is required').isISO8601().withMessage('Please provide a valid date'),
   body('member.mobile').trim().notEmpty().withMessage('Mobile number is required').matches(/^[6-9]\d{9}$/).withMessage('Please provide a valid 10-digit mobile number'),
+  
+  // Documents validation (optional but structure check if provided)
+  body('documents.agencyAddressProof.url').optional().isURL().withMessage('Valid agency address proof URL is required'),
+  body('documents.shopPhoto.url').optional().isURL().withMessage('Valid shop photo URL is required'),
+  body('documents.businessCard.url').optional().isURL().withMessage('Valid business card URL is required'),
+  
+  // Partner/Staff (Optional)
+  body('partner.name').optional().trim(),
+  body('partner.mobile').optional().trim().matches(/^[6-9]\d{9}$/).withMessage('Please provide a valid 10-digit mobile number for partner'),
+  body('staff.name').optional().trim(),
+  body('staff.mobile').optional().trim().matches(/^[6-9]\d{9}$/).withMessage('Please provide a valid 10-digit mobile number for staff'),
 ];
 
 exports.validate = (req, res, next) => {

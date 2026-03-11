@@ -4,11 +4,19 @@ const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
 const { verifyToken } = require('../utils/jwtHelper');
 
-// Protect routes - verify JWT from cookie
+// Protect routes - verify JWT from cookie or header
 const authenticateAdmin = async (req, res, next) => {
   try {
-    // Get token from cookie
-    const token = req.cookies.token;
+    // Get token from cookie first, then from Authorization header
+    let token = req.cookies.admintoken;
+    
+    // Fallback to Authorization header if cookie not found
+    if (!token && req.headers.authorization) {
+      const authHeader = req.headers.authorization;
+      if (authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7); // Remove 'Bearer ' prefix
+      }
+    }
 
     if (!token) {
       throw new ApiError(401, 'Not authorized. Please login to access this resource');
@@ -60,6 +68,7 @@ const authorizeRoles = (...roles) => {
 const authenticateMember = async (req, res, next) => {
   try {
     const token = req.cookies.memberToken;
+    console.log("Member token:", token);
 
     if (!token) {
       throw new ApiError(401, 'Not authorized. Please login to access this resource');
@@ -82,6 +91,7 @@ const authenticateMember = async (req, res, next) => {
     req.member = member;
     next();
   } catch (error) {
+    console.log("Error during member authentication:", error);
     next(error);
   }
 };

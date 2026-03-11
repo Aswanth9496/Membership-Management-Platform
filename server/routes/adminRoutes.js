@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { register, login, logout, getProfile, getDashboard, getAllPayments } = require('../controllers/adminController');
 const { forgotPassword, verifyOTP, resetPasswordController } = require('../controllers/forgotPasswordController');
-const { getPendingApprovalsController, getPendingApprovalsByRoleController, updateMemberApprovalController, deleteUserController, getApprovedOrRejectedMembersController, toggleMemberBlockStatusController, reviewProfileUpdateController, getProfileUpdateRequestsController } = require('../controllers/memberController');
+const { getPendingApprovalsController, getPendingApprovalsByRoleController, updateMemberApprovalController, deleteUserController, getAllMembersController, updateMemberStatusController, toggleMemberBlockStatusController, reviewProfileUpdateController, getProfileUpdateRequestsController } = require('../controllers/memberController');
 const { adminRegisterValidationRules, adminLoginValidationRules, validate } = require('../validators/adminValidator');
 const { forgotPasswordValidationRules, verifyOTPValidationRules, resetPasswordValidationRules, validate: validateForgotPassword } = require('../validators/forgotPasswordValidator');
 const { approvalValidationRules, validate: validateApproval } = require('../validators/memberValidator');
@@ -20,7 +20,7 @@ const adminRegisterLimiter = rateLimit({
 // Rate limiter for login
 const adminLoginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 101,
   message: 'Too many login attempts. Please try again later.',
 });
 
@@ -48,7 +48,7 @@ const resetPasswordLimiter = rateLimit({
 // Register Admin
 router.post(
   '/register',
-  adminRegisterLimiter,
+  // adminRegisterLimiter,
   adminRegisterValidationRules,
   validate,
   asyncHandler(register)
@@ -110,8 +110,11 @@ router.get('/pending-approvals/:role', authenticateAdmin, asyncHandler(getPendin
 // Update Member Approval - Approve or Reject member
 router.put('/members/:id/approval', authenticateAdmin, approvalValidationRules, validateApproval, asyncHandler(updateMemberApprovalController));
 
-// Get Processed Members (Fully Approved)
-router.get('/members', authenticateAdmin, asyncHandler(getApprovedOrRejectedMembersController));
+// Get All Members with Filtering and Pagination
+router.get('/members', authenticateAdmin, asyncHandler(getAllMembersController));
+
+// Update Member Status
+router.put('/members/:id/status', authenticateAdmin, asyncHandler(updateMemberStatusController));
 
 // Block/Unblock a user (Change status)
 router.put('/members/:id/block', authenticateAdmin, asyncHandler(toggleMemberBlockStatusController));

@@ -30,7 +30,7 @@ const loginMember = async (email, password) => {
     }
 
     // Generate JWT token (30 days expiry)
-    const token = generateToken(member._id, '30d');
+    const token = generateToken(member._id, 'member', '30d');
 
     // Return member data (without password)
     const memberData = {

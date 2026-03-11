@@ -42,8 +42,10 @@ const calculateAmount = (type) => {
 
 // Create Razorpay order
 const createOrder = async (amount, receipt, notes = {}) => {
+  console.log("Creating order with amount:", amount);
   try {
     const rzp = getRazorpayInstance();
+    console.log("Razorpay instance created", rzp);
     const order = await rzp.orders.create({
       amount: amount * 100, // Convert to paise (₹1 = 100 paise)
       currency: 'INR',

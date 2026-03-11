@@ -1,6 +1,138 @@
 const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
 
+// Get all members with comprehensive filtering and pagination
+const getAllMembers = async (options = {}) => {
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    search,
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
+    role
+  } = options;
+
+  try {
+    const skip = (page - 1) * limit;
+
+    // Build query
+    let query = {};
+
+    // Status filter
+    if (status) {
+      query.status = status;
+    }
+
+    // Role filter
+    if (role) {
+      query['membershipDetails.membershipType'] = role;
+    }
+
+    // Search filter (name, email, membershipNumber)
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { membershipNumber: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Build sort object
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Get members with pagination
+    const members = await User.find(query)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .select('-password')
+      .lean();
+
+    // Get total count
+    const totalMembers = await User.countDocuments(query);
+    const totalPages = Math.ceil(totalMembers / limit);
+
+    return {
+      members,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalMembers,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      },
+      filters: {
+        status,
+        search,
+        sortBy,
+        sortOrder,
+        role
+      }
+    };
+
+  } catch (error) {
+    console.error('Error in getAllMembers:', error);
+    throw new ApiError(500, 'Failed to retrieve members');
+  }
+};
+
+// Update member status
+const updateMemberStatus = async (memberId, newStatus, rejectionReason, adminRole, adminName) => {
+  try {
+    // Validate member exists
+    const member = await User.findById(memberId);
+    if (!member) {
+      throw new ApiError(404, 'Member not found');
+    }
+
+    // Update status
+    member.status = newStatus;
+    
+    // Add rejection reason if rejecting
+    if (newStatus === 'rejected' && rejectionReason) {
+      member.rejectionReason = rejectionReason;
+    }
+
+    // Track status change
+    if (!member.statusHistory) {
+      member.statusHistory = [];
+    }
+    
+    member.statusHistory.push({
+      status: newStatus,
+      changedBy: {
+        adminId: adminRole === 'admin' ? null : adminRole,
+        adminName,
+        role: adminRole
+      },
+      changedAt: new Date(),
+      rejectionReason: newStatus === 'rejected' ? rejectionReason : null
+    });
+
+    await member.save();
+
+    return {
+      memberId: member._id,
+      name: member.name,
+      email: member.email,
+      previousStatus: member.statusHistory[member.statusHistory.length - 2]?.status || 'N/A',
+      newStatus,
+      changedBy: adminName,
+      changedAt: new Date()
+    };
+
+  } catch (error) {
+    console.error('Error in updateMemberStatus:', error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(500, 'Failed to update member status');
+  }
+};
+
 // Get members pending approval (at least one role needs to approve)
 const getPendingApprovals = async (page = 1, limit = 10) => {
   try {
@@ -568,6 +700,8 @@ const toggleMemberBlockStatus = async (memberId, action) => {
 };
 
 module.exports = {
+  getAllMembers,
+  updateMemberStatus,
   getPendingApprovals,
   getPendingApprovalsByRole,
   updateMemberApproval,

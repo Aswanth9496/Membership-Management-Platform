@@ -1,0 +1,730 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+		"name": "Members Management API",
+		"description": "Production-ready API for managing members with comprehensive filtering, pagination, and status management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Store token for subsequent requests",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success) {",
+									"        // Note: Token is stored in httpOnly cookie by backend",
+									"        // Postman will automatically handle cookies",
+									"        pm.globals.set(\"adminLoggedIn\", true);",
+									"        pm.globals.set(\"adminEmail\", response.data.admin.email);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"aswanth@gmail.com\",\n    \"password\": \"your_password_here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Members Management",
+			"item": [
+				{
+					"name": "Get All Members (No Filters)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Status Filter (Submitted)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?status=submitted&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "submitted"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Status Filter (Approved)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?status=approved&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "approved"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Status Filter (Rejected)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?status=rejected&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "rejected"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Status Filter (Verified)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?status=verified&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "verified"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Status Filter (Payment Completed)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?status=payment_completed&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "payment_completed"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Search by Name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?search=john&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "john"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Search by Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?search=gmail.com&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "gmail.com"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Sort by Created Date (Newest)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?sortBy=createdAt&sortOrder=desc&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "sortBy",
+									"value": "createdAt"
+								},
+								{
+									"key": "sortOrder",
+									"value": "desc"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Sort by Name (A-Z)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?sortBy=name&sortOrder=asc&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "sortBy",
+									"value": "name"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members - Combined Filters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members?status=submitted&search=john&sortBy=createdAt&sortOrder=desc&page=1&limit=5",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "submitted"
+								},
+								{
+									"key": "search",
+									"value": "john"
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt"
+								},
+								{
+									"key": "sortOrder",
+									"value": "desc"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Member Status - Approve",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Replace with actual member ID from your database",
+									"const memberId = pm.collectionVariables.get(\"testMemberId\") || \"69aefdcdf7198a3cd06737cb\";",
+									"pm.collectionVariables.set(\"memberId\", memberId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"approved\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members/{{memberId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members",
+								"{{memberId}}",
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Member Status - Reject with Reason",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Replace with actual member ID from your database",
+									"const memberId = pm.collectionVariables.get(\"testMemberId\") || \"69aefdcdf7198a3cd06737cb\";",
+									"pm.collectionVariables.set(\"memberId\", memberId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"rejected\",\n    \"rejectionReason\": \"Incomplete documentation provided\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members/{{memberId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members",
+								"{{memberId}}",
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Member Status - Verify",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Replace with actual member ID from your database",
+									"const memberId = pm.collectionVariables.get(\"testMemberId\") || \"69aefdcdf7198a3cd06737cb\";",
+									"pm.collectionVariables.set(\"memberId\", memberId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"verified\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members/{{memberId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members",
+								"{{memberId}}",
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Member Status - Payment Completed",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Replace with actual member ID from your database",
+									"const memberId = pm.collectionVariables.get(\"testMemberId\") || \"69aefdcdf7198a3cd06737cb\";",
+									"pm.collectionVariables.set(\"memberId\", memberId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"payment_completed\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/members/{{memberId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"members",
+								"{{memberId}}",
+								"status"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Utility & Other Endpoints",
+			"item": [
+				{
+					"name": "Get Dashboard Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/dashboard",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"dashboard"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pending Approvals",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/pending-approvals",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"pending-approvals"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-login if not authenticated",
+					"if (!pm.globals.get(\"adminLoggedIn\") && pm.info.requestName === \"Admin Login\") {",
+					"    // Let the login request proceed",
+					"    return;",
+					"}",
+					"",
+					"// Check if we need to login before making requests",
+					"if (!pm.globals.get(\"adminLoggedIn\") && pm.info.requestName !== \"Admin Login\") {",
+					"    console.log(\"Need to login first\");",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Common tests for all requests",
+					"pm.test(\"Status code is successful\", function () {",
+					"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+					"});",
+					"",
+					"pm.test(\"Response has success field\", function () {",
+					"    const responseJson = pm.response.json();",
+					"    pm.expect(responseJson).to.have.property('success');",
+					"});",
+					"",
+					"pm.test(\"Response time is reasonable\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(3000);",
+					"});",
+					"",
+					"// Specific tests for GET members endpoints",
+					"if (pm.info.requestName.includes(\"Get Members\")) {",
+					"    pm.test(\"Members response structure\", function () {",
+					"        const responseJson = pm.response.json();",
+					"        if (responseJson.success) {",
+					"            pm.expect(responseJson.data).to.have.property('members');",
+					"            pm.expect(responseJson.data).to.have.property('pagination');",
+					"            pm.expect(responseJson.data.pagination).to.have.property('currentPage');",
+					"            pm.expect(responseJson.data.pagination).to.have.property('totalPages');",
+					"            pm.expect(responseJson.data.pagination).to.have.property('totalMembers');",
+					"        }",
+					"    });",
+					"}",
+					"",
+					"// Specific tests for status update endpoints",
+					"if (pm.info.requestName.includes(\"Update Member Status\")) {",
+					"    pm.test(\"Status update response\", function () {",
+					"        const responseJson = pm.response.json();",
+					"        if (responseJson.success) {",
+					"            pm.expect(responseJson.data).to.have.property('newStatus');",
+					"            pm.expect(responseJson.data).to.have.property('changedBy');",
+					"        }",
+					"    });",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "testMemberId",
+			"value": "69aefdcdf7198a3cd06737cb",
+			"type": "string"
+		}
+	]
+}

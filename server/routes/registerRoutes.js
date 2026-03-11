@@ -1,30 +1,23 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
-const { register, uploadDocument } = require('../controllers/registerController');
+const { register } = require('../controllers/registerController');
 const { registerValidationRules, validate } = require('../validators/registerValidator');
 const asyncHandler = require('../middlewares/asyncHandler');
 const upload = require('../middlewares/uploadMiddleware');
-
-const registerLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: 'Too many registration attempts from this IP. Please try again after 15 minutes.',
-});
+const parseNestedBody = require('../middlewares/parseNestedBody');
 
 router.post(
   '/',
-  registerLimiter,
+  upload.fields([
+    { name: 'agencyAddressProof', maxCount: 1 },
+    { name: 'shopPhoto', maxCount: 1 },
+    { name: 'businessCard', maxCount: 1 }
+  ]),
+  parseNestedBody,
   registerValidationRules,
   validate,
   asyncHandler(register)
-);
-
-// Upload document route (during registration)
-router.post(
-  '/documents/upload',
-  upload.single('document'),
-  asyncHandler(uploadDocument)
 );
 
 module.exports = router;
