@@ -7,28 +7,37 @@ const register = async (req, res) => {
     const baseUrl = `${process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`}/uploads/`;
     req.body.documents = req.body.documents || {};
     
-    if (req.files.agencyAddressProof) {
-      req.body.documents.agencyAddressProof = {
-        url: baseUrl + req.files.agencyAddressProof[0].filename,
-        publicId: req.files.agencyAddressProof[0].filename,
-        uploadedAt: new Date()
-      };
-    }
-    if (req.files.shopPhoto) {
-      req.body.documents.shopPhoto = {
-        url: baseUrl + req.files.shopPhoto[0].filename,
-        publicId: req.files.shopPhoto[0].filename,
-        uploadedAt: new Date()
-      };
-    }
-    if (req.files.businessCard) {
-      req.body.documents.businessCard = {
-        url: baseUrl + req.files.businessCard[0].filename,
-        publicId: req.files.businessCard[0].filename,
-        uploadedAt: new Date()
-      };
+    const fileFields = [
+      'agencyAddressProof',
+      'activityLicense',
+      'shopPhoto',
+      'businessCard',
+      'agencyLogo',
+      'memberPhoto',
+      'additionalDoc'
+    ];
+
+    fileFields.forEach(field => {
+      if (req.files[field]) {
+        req.body.documents[field] = {
+          url: baseUrl + req.files[field][0].filename,
+          publicId: req.files[field][0].filename,
+          uploadedAt: new Date()
+        };
+      }
+    });
+  }
+
+  // Handle references if passed (assume they come as an array or comma-separated string)
+  if (req.body.references) {
+    req.body.referral = req.body.referral || {};
+    if (typeof req.body.references === 'string') {
+      req.body.referral.references = req.body.references.split(',').filter(id => id.trim());
+    } else {
+      req.body.referral.references = req.body.references;
     }
   }
+
   console.log('--- Register Request ---');
   console.log('Body Keys:', Object.keys(req.body));
   console.log('Establishment:', req.body.establishment);
@@ -46,6 +55,28 @@ const register = async (req, res) => {
   );
 };
 
+const User = require('../models/User');
+const getApprovedMembers = async (req, res) => {
+  const { search } = req.query;
+  const query = { status: 'approved' };
+
+  if (search) {
+    query.$or = [
+      { 'member.fullName': { $regex: search, $options: 'i' } },
+      { 'establishment.name': { $regex: search, $options: 'i' } },
+      { membershipNumber: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  const members = await User.find(query)
+    .select('_id member.fullName establishment.name membershipNumber email')
+    .limit(5)
+    .lean();
+
+  successResponse(res, { members }, 'Approved members retrieved successfully');
+};
+
 module.exports = {
   register,
+  getApprovedMembers,
 };

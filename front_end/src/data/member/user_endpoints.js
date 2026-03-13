@@ -18,7 +18,10 @@ export const memberEndpoints = {
 
   // 📝 Registration Routes (use authApi - no credentials initially)
   registration: {
-    register: (memberData) => authApi.post('/api/register', memberData),
+    register: (memberData) => authApi.post('/api/register', memberData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    getApprovedMembers: (search = '') => authApi.get(`/api/register/members?search=${search}`),
     uploadDocument: (formData) => authApi.post('/api/register/documents/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
@@ -48,6 +51,13 @@ export const memberEndpoints = {
   payments: {
     getStatus: () => api.get('/api/payment/status'),
     dummySuccess: () => api.post('/api/payment/dummy-success'),
+  },
+
+  // 📝 Reference Verification (use api - with credentials)
+  references: {
+    getMyRequests: () => api.get('/api/references/my-requests'),
+    confirm: (requestId, remarks) => api.patch(`/api/references/${requestId}/confirm`, { remarks }),
+    reject: (requestId, remarks) => api.patch(`/api/references/${requestId}/reject`, { remarks }),
   },
 };
 

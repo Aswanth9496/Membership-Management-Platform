@@ -63,6 +63,7 @@ const adminProfileRoutes = require('./routes/adminProfileRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const memberEventRoutes = require('./routes/memberEventRoutes');
 const authRoutes = require('./routes/authRoutes');
+const referenceRoutes = require('./routes/referenceRoutes');
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -92,6 +93,7 @@ app.use('/api/member/profile', memberProfileRoutes);
 app.use('/api/admin/profile-change-requests', adminProfileRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/member/events', memberEventRoutes);
+app.use('/api/references', referenceRoutes);
 
 const errorHandler = require('./middlewares/errorHandler');
 

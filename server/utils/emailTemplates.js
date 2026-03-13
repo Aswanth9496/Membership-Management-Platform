@@ -165,9 +165,53 @@ const passwordResetSuccessTemplate = (name) => {
   `;
 };
 
+// Reference Request Template
+const referenceRequestTemplate = (name, applicantName, agencyName) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .info-box { background: white; border-left: 4px solid #FF9800; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>📝 Reference Request</h1>
+        </div>
+        <div class="content">
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>You have been listed as a reference by an applicant during their membership registration at <strong>techfinit</strong>.</p>
+          
+          <div class="info-box">
+            <p style="margin: 5px 0;"><strong>Applicant Name:</strong> ${applicantName}</p>
+            <p style="margin: 5px 0;"><strong>Agency Name:</strong> ${agencyName}</p>
+          </div>
+          
+          <p>Please log in to your dashboard to confirm whether you know this person and verify the reference.</p>
+          
+          <p>Verifying references helps us maintain a trusted network of tourism professionals.</p>
+        </div>
+        <div class="footer">
+          <p>© 2024 techfinit. All rights reserved.</p>
+          <p>This is an automated email. Please do not reply.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 module.exports = {
   forgotPasswordTemplate,
   emailVerificationTemplate,
   welcomeTemplate,
   passwordResetSuccessTemplate,
+  referenceRequestTemplate,
 };

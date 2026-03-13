@@ -56,7 +56,11 @@ const userSchema = new mongoose.Schema(
       businessType: {
         type: String,
         required: [true, 'Business type is required'],
-        enum: ['Retail', 'Wholesale', 'Service', 'Manufacturing', 'Trading', 'Other'],
+      },
+      businessTypeDescription: {
+        type: String,
+        required: [function() { return this.establishment.businessType === 'Other'; }, 'Please describe your business type'],
+        trim: true,
       },
       organizationalStatus: {
         type: String,
@@ -182,12 +186,32 @@ const userSchema = new mongoose.Schema(
         publicId: String,
         uploadedAt: Date,
       },
+      activityLicense: {
+        url: String,
+        publicId: String,
+        uploadedAt: Date,
+      },
       shopPhoto: {
         url: String,
         publicId: String,
         uploadedAt: Date,
       },
       businessCard: {
+        url: String,
+        publicId: String,
+        uploadedAt: Date,
+      },
+      agencyLogo: {
+        url: String,
+        publicId: String,
+        uploadedAt: Date,
+      },
+      memberPhoto: {
+        url: String,
+        publicId: String,
+        uploadedAt: Date,
+      },
+      additionalDoc: {
         url: String,
         publicId: String,
         uploadedAt: Date,
@@ -211,6 +235,10 @@ const userSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
       },
+      references: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      }],
       referralCode: {
         type: String,
         unique: true,

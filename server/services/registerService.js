@@ -21,7 +21,7 @@ const findReferrer = async (referralCode) => {
 };
 
 const buildUserData = (body) => {
-  const { email, password, membershipType, establishment, location, member, partner, staff, documents } = body;
+  const { email, password, membershipType, establishment, location, member, partner, staff, documents, referral } = body;
 
   const userData = {
     email,
@@ -33,6 +33,7 @@ const buildUserData = (body) => {
       yearOfEstablishment: establishment.yearOfEstablishment,
       officialClassification: establishment.officialClassification,
       businessType: establishment.businessType,
+      businessTypeDescription: establishment.businessTypeDescription,
       organizationalStatus: establishment.organizationalStatus || 'Active',
       officialEmail: establishment.officialEmail,
       website: establishment.website || undefined,
@@ -40,13 +41,13 @@ const buildUserData = (body) => {
       gstNumber: establishment.gstNumber || undefined,
     },
     location: {
-      district: location.district,
-      region: location.region,
-      city: location.city,
-      pinCode: location.pinCode,
-      registeredAddress: location.registeredAddress,
-      communicationAddress: location.isSameAddress ? location.registeredAddress : location.communicationAddress,
-      isSameAddress: location.isSameAddress !== undefined ? location.isSameAddress : true,
+      district: location?.district,
+      region: location?.region,
+      city: location?.city,
+      pinCode: location?.pinCode,
+      registeredAddress: location?.registeredAddress,
+      communicationAddress: (location?.isSameAddress === true || location?.isSameAddress === 'true') ? location?.registeredAddress : location?.communicationAddress,
+      isSameAddress: (location?.isSameAddress === true || location?.isSameAddress === 'true'),
     },
     member: {
       officeType: member.officeType,
@@ -57,6 +58,7 @@ const buildUserData = (body) => {
       landline: member.landline || undefined,
     },
     status: 'submitted',
+    referral: referral || { references: [] }
   };
 
   if (partner && partner.name) {
@@ -75,27 +77,25 @@ const buildUserData = (body) => {
 
   if (documents) {
     userData.documents = {};
-    if (documents.agencyAddressProof) {
-      userData.documents.agencyAddressProof = {
-        url: documents.agencyAddressProof.url,
-        publicId: documents.agencyAddressProof.publicId,
-        uploadedAt: new Date(),
-      };
-    }
-    if (documents.shopPhoto) {
-      userData.documents.shopPhoto = {
-        url: documents.shopPhoto.url,
-        publicId: documents.shopPhoto.publicId,
-        uploadedAt: new Date(),
-      };
-    }
-    if (documents.businessCard) {
-      userData.documents.businessCard = {
-        url: documents.businessCard.url,
-        publicId: documents.businessCard.publicId,
-        uploadedAt: new Date(),
-      };
-    }
+    const docFields = [
+      'agencyAddressProof',
+      'activityLicense',
+      'shopPhoto',
+      'businessCard',
+      'agencyLogo',
+      'memberPhoto',
+      'additionalDoc'
+    ];
+    
+    docFields.forEach(field => {
+      if (documents[field]) {
+        userData.documents[field] = {
+          url: documents[field].url,
+          publicId: documents[field].publicId,
+          uploadedAt: documents[field].uploadedAt || new Date(),
+        };
+      }
+    });
   }
 
   return userData;
@@ -142,6 +142,8 @@ const formatUserResponse = (user) => {
   };
 };
 
+const { createReferenceRequests } = require('./referenceService');
+
 const registerUser = async (body) => {
   const { email, member, referredBy } = body;
 
@@ -161,6 +163,12 @@ const registerUser = async (body) => {
 
   if (referrer && userData.referral) {
     await updateReferrerList(referrer, user._id);
+  }
+
+  // Trigger reference verification workflow
+  if (user.referral?.references?.length > 0) {
+    // We don't await this to keep registration fast, or we can await it if we want to ensure emails sent
+    createReferenceRequests(user._id, user.referral.references).catch(console.error);
   }
 
   return user;

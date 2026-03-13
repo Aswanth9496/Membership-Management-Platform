@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { adminEndpoints } from '../../data/admin'
+import AdminReferenceRequests from '../../components/admin/AdminReferenceRequests'
 
 const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null)
@@ -273,6 +274,11 @@ const AdminDashboard = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Reference Verification Requests - Responsive */}
+        <div className="xl:col-span-2">
+           <AdminReferenceRequests />
         </div>
 
         {/* Quick Actions - Responsive */}

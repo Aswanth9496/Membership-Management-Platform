@@ -18,6 +18,11 @@ export const adminEndpoints = {
     getDashboard: () => api.get('/api/admin/dashboard'),
   },
 
+  // 📝 Reference Verification Management (use api - with credentials)
+  references: {
+    getAll: () => api.get('/api/references/admin/all'),
+  },
+
   // 👥 Member Management Routes (use api - with credentials)
   members: {
     getAll: (filters = {}) => {
