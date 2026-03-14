@@ -126,16 +126,23 @@ const requestProfileUpdate = async (memberId, requestedChanges) => {
 // 2. Get Profile Change Request Status
 const getChangeRequestStatus = async (memberId) => {
   try {
+    const member = await User.findById(memberId).select('status');
     const request = await ProfileUpdateRequest.findOne({ userId: memberId }).sort({ requestedAt: -1 }).lean();
 
     if (!request) {
-      return { hasPendingRequest: false, lastRequest: null, message: 'No recent requests' };
+      return { 
+        hasPendingRequest: false, 
+        memberStatus: member?.status || 'unknown',
+        lastRequest: null, 
+        message: 'No recent requests' 
+      };
     }
 
     if (request.status === 'pending') {
       const pendingFor = Math.floor((new Date() - new Date(request.requestedAt)) / (1000 * 60));
       return {
         hasPendingRequest: true,
+        memberStatus: member?.status || 'unknown',
         message: 'You have a pending profile update request',
         request: {
           status: 'pending',
@@ -147,6 +154,7 @@ const getChangeRequestStatus = async (memberId) => {
 
     return {
       hasPendingRequest: false,
+      memberStatus: member?.status || 'unknown',
       message: `Your last request was ${request.status}`,
       lastRequest: {
         status: request.status,

@@ -50,6 +50,8 @@ export const memberEndpoints = {
   // 💳 Payment Endpoints
   payments: {
     getStatus: () => api.get('/api/payment/status'),
+    createOrder: () => api.post('/api/payment/create-order'),
+    verifyPayment: (paymentData) => api.post('/api/payment/verify', paymentData),
     dummySuccess: () => api.post('/api/payment/dummy-success'),
   },
 

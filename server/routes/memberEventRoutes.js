@@ -4,7 +4,6 @@ const {
     getPublishedEventsController,
     getPublishedEventDetailsController,
     registerForEventController,
-    verifyEventRegistrationController,
     getMyEventsController
 } = require('../controllers/memberEventController');
 const asyncHandler = require('../middlewares/asyncHandler');
@@ -19,9 +18,6 @@ router.get('/', authenticateMember, asyncHandler(getPublishedEventsController));
 
 // Get member's registered events
 router.get('/my-events', authenticateMember, asyncHandler(getMyEventsController));
-
-// Verify registration payment
-router.post('/verify-payment', authenticateMember, asyncHandler(verifyEventRegistrationController));
 
 // Get single published event details
 router.get('/:eventId', authenticateMember, asyncHandler(getPublishedEventDetailsController));

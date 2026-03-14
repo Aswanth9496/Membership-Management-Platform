@@ -11,7 +11,7 @@ const MemberLogin = () => {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  
+
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
@@ -27,7 +27,7 @@ const MemberLogin = () => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    
+
     try {
       const response = await memberEndpoints.auth.login(formData)
       if (response && response.success) {
@@ -111,8 +111,8 @@ const MemberLogin = () => {
               </Link>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full bg-blue-600 text-white rounded-xl px-6 py-4 font-bold text-sm tracking-wide transition-all hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
             >
@@ -129,7 +129,7 @@ const MemberLogin = () => {
                 Register here
               </Link>
             </p>
-            
+
             <Link to="/" className="flex items-center justify-center gap-2 text-slate-600 text-xs hover:text-blue-400 transition-colors">
               <span>←</span> Back to Main Website
             </Link>

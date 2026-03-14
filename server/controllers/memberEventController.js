@@ -80,25 +80,6 @@ const registerForEventController = async (req, res) => {
 };
 
 /**
- * Controller to handle payment verification
- */
-const verifyEventRegistrationController = async (req, res) => {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-
-    const result = await verifyRegistrationPayment(
-        razorpay_order_id,
-        razorpay_payment_id,
-        razorpay_signature
-    );
-
-    successResponse(
-        res,
-        result,
-        'Payment verified and registration confirmed!'
-    );
-};
-
-/**
  * Controller to get logged-in member's events
  */
 const getMyEventsController = async (req, res) => {
@@ -117,6 +98,5 @@ module.exports = {
     getPublishedEventsController,
     getPublishedEventDetailsController,
     registerForEventController,
-    verifyEventRegistrationController,
     getMyEventsController,
 };

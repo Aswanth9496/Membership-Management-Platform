@@ -17,21 +17,21 @@ const AdminLogin = () => {
 
   const validateForm = () => {
     const newErrors = {}
-    
+
     // Email validation
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address'
     }
-    
+
     // Password validation
     if (!formData.password.trim()) {
       newErrors.password = 'Password is required'
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters'
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -42,7 +42,7 @@ const AdminLogin = () => {
       ...prev,
       [name]: value
     }))
-    
+
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -55,7 +55,7 @@ const AdminLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setApiError('')
-    
+
     if (!validateForm()) {
       return
     }
@@ -83,7 +83,7 @@ const AdminLogin = () => {
     } catch (err) {
       console.error('Login error:', err)
       let errorMessage = 'Connection error. Please try again.'
-      
+
       // Handle specific error cases
       if (err.response) {
         if (err.response.status === 401) {
@@ -96,7 +96,7 @@ const AdminLogin = () => {
       } else if (err.code === 'NETWORK_ERROR') {
         errorMessage = 'Network error. Please check your connection.'
       }
-      
+
       setApiError(errorMessage)
     } finally {
       setLoading(false)
@@ -189,8 +189,8 @@ const AdminLogin = () => {
             </div>
 
             <div className="animate-fadeUp" style={{ animationDelay: '0.4s' }}>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white border-none rounded-xl px-6 py-4 font-inter font-semibold text-sm tracking-wide cursor-pointer transition-all duration-250 relative overflow-hidden shadow-lg shadow-blue-500/40 hover:transform hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-500/65 active:transform active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >

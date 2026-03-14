@@ -1,14 +1,31 @@
-const User = require('../models/User');
 const Payment = require('../models/Payment');
-const { calculateAmount, createOrder, verifyPaymentSignature, getRazorpayKeyId, verifyWebhookSignature } = require('../utils/razorpayHelper');
-const { sendEmail } = require('../utils/emailService');
+const Order = require('../models/Order');
+const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
+const { createOrder, verifyPaymentSignature, getRazorpayKeyId } = require('../utils/razorpayHelper');
+const { sendEmail } = require('../utils/emailService');
+// Lazy import to avoid potential circular dependencies if they arise
+let memberEventService;
+const getMemberEventService = () => {
+    if (!memberEventService) {
+        memberEventService = require('./memberEventService');
+    }
+    return memberEventService;
+};
 
 // Helper: Generate unique certificate number
 const generateCertificateNumber = () => {
   const year = new Date().getFullYear();
   const random = Math.floor(100000 + Math.random() * 900000);
   return `CERT${year}${random}`;
+};
+
+// Helper: Generate unique Order number
+const generateOrderNumber = () => {
+  const year = new Date().getFullYear();
+  const ts = Date.now().toString().slice(-6);
+  const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `ORD-${year}-${ts}${rand}`;
 };
 
 // Helper: Calculate certificate expiry (Max of existing expiry or today + 1 year)
@@ -80,7 +97,7 @@ const createPaymentOrder = async (memberId) => {
 
     console.log("Order created:", order);
 
-    // Track payment authentically in Payment table
+    // Track payment authentically in Payment table (Legacy)
     await Payment.create({
       user: member._id,
       razorpayOrderId: order.id,
@@ -89,6 +106,29 @@ const createPaymentOrder = async (memberId) => {
       status: 'pending',
       paymentType: paymentType,
       metadata: notes
+    });
+
+    // Track payment in the new PRODUCTION-STANDARD Order model
+    const newOrder = await Order.create({
+      orderNumber: generateOrderNumber(),
+      member: member._id,
+      razorpayOrderId: order.id,
+      amount: {
+        total: amounts.totalAmount,
+        base: amounts.baseAmount,
+        gst: amounts.gstAmount,
+        currency: 'INR'
+      },
+      status: 'created',
+      orderType: paymentType === 'new' ? 'membership_new' : 'membership_renewal',
+      metadata: {
+        paymentType,
+        email: member.email
+      },
+      history: [{
+        status: 'created',
+        description: `Order initiated for ${paymentType} membership`
+      }]
     });
 
     // Store order details in member (legacy compat)
@@ -130,57 +170,82 @@ const createPaymentOrder = async (memberId) => {
 };
 
 // 2. Verify Payment
+// 2. Verify Payment (UNIFIED GATEWAY - Production Standard)
 const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
   try {
-    // Verify signature
+    // 1. Verify cryptographic signature
     const isValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
-
     if (!isValid) {
       console.error('❌ Invalid payment signature');
       throw new ApiError(400, 'Payment verification failed. Invalid signature.');
     }
 
-    // Find member by order ID
-    const member = await User.findOne({ 'payment.razorpayOrderId': razorpayOrderId });
-    if (!member) {
-      throw new ApiError(404, 'Order not found. Please contact support.');
+    // 2. Identify the Order (The Central Truth)
+    const internalOrder = await Order.findOne({ razorpayOrderId });
+    if (!internalOrder) {
+      throw new ApiError(404, 'Transaction record not found in system.');
     }
 
-    // Duplicate Check: Database-level lookup to ensure we don't process it twice
-    const existingPayment = await Payment.findOne({ razorpayOrderId: razorpayOrderId });
-    if (!existingPayment) {
-      throw new ApiError(404, 'Payment origin not internally recorded.');
+    // 3. Short-circuit if already processed
+    if (internalOrder.status === 'paid') {
+        console.log(`⚠️  Order ${internalOrder.orderNumber} already marked as paid.`);
+        return { success: true, alreadyProcessed: true, orderType: internalOrder.orderType };
     }
 
-    if (existingPayment.status === 'completed' || member.payment.razorpayPaymentId === razorpayPaymentId) {
-      console.log(`⚠️  Payment already processed for member: ${member.email}`);
-      return {
-        message: 'Payment already processed',
-        alreadyProcessed: true,
-        member: { id: member._id, email: member.email, status: member.status },
-      };
+    // 4. Common Status Updates (Order & Payment)
+    internalOrder.status = 'paid';
+    internalOrder.razorpayPaymentId = razorpayPaymentId;
+    internalOrder.razorpaySignature = razorpaySignature;
+    internalOrder.paymentDetails.captured = true;
+    internalOrder.paymentDetails.method = 'Razorpay Unified';
+    internalOrder.history.push({
+        status: 'paid',
+        description: `Payment verified via unified gateway. Type: ${internalOrder.orderType}`
+    });
+    await internalOrder.save();
+
+    await Payment.updateOne(
+        { razorpayOrderId },
+        { status: 'completed', razorpayPaymentId, razorpaySignature }
+    );
+
+    // 5. Branch Logic based on Order Type
+    const orderType = internalOrder.orderType;
+
+    if (orderType === 'membership_new' || orderType === 'membership_renewal') {
+        return await handleMembershipVerification(internalOrder, razorpayPaymentId, razorpaySignature);
+    } else if (orderType === 'event_booking') {
+        const eventService = getMemberEventService();
+        return await eventService.verifyRegistrationPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature);
     }
+
+    throw new ApiError(400, `Unsupported order type: ${orderType}`);
+  } catch (error) {
+    console.error('Error in unified verification:', error);
+    if (razorpayOrderId) {
+        await Order.updateOne({ razorpayOrderId }, { status: 'failed' }).catch(() => {});
+        await Payment.updateOne({ razorpayOrderId }, { status: 'failed' }).catch(() => {});
+    }
+    throw error;
+  }
+};
+
+// Internal Helper: Handle Membership specific logic
+const handleMembershipVerification = async (order, paymentId, signature) => {
+    const member = await User.findById(order.member);
+    if (!member) throw new ApiError(404, 'Member not found');
 
     const paymentType = member.payment.type;
-    const paymentAmount = member.payment.amount;
+    const paymentAmount = order.amount.total;
 
-    // Secure the Payment record
-    existingPayment.status = 'completed';
-    existingPayment.razorpayPaymentId = razorpayPaymentId;
-    existingPayment.razorpaySignature = razorpaySignature;
-    await existingPayment.save();
-
-    // Update payment details
+    // Update member individual payment block (Sync for profiles)
     member.payment.status = 'completed';
-    member.payment.razorpayPaymentId = razorpayPaymentId;
-    member.payment.razorpaySignature = razorpaySignature;
-    member.payment.transactionId = razorpayPaymentId;
+    member.payment.razorpayPaymentId = paymentId;
+    member.payment.razorpaySignature = signature;
     member.payment.paymentDate = new Date();
-    member.payment.paymentMethod = 'online';
 
     if (paymentType === 'new') {
-      // NEW MEMBER - Generate certificate
-      const expiryDate = calculateExpiryDate(null); // today + 1 year
+      const expiryDate = calculateExpiryDate(null);
       const issueDate = new Date();
 
       member.certificate.generated = true;
@@ -191,205 +256,66 @@ const verifyPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignatu
       member.status = 'approved';
 
       await member.save();
-
-      // Send payment success + certificate email
-      const emailContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .success { background: #4CAF50; color: white; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; }
-            .details { background: white; padding: 15px; border-left: 4px solid #4CAF50; margin: 15px 0; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🎉 Payment Successful!</h1>
-            </div>
-            <div class="content">
-              <div class="success">
-                <h2 style="margin: 0;">✅ Membership Activated</h2>
-              </div>
-              <p>Hi <strong>${member.member?.fullName || 'Member'}</strong>,</p>
-              <p>Your payment has been successfully processed and your membership has been activated!</p>
-              
-              <div class="details">
-                <h3>Payment Details:</h3>
-                <p><strong>Amount Paid:</strong> ₹${paymentAmount}</p>
-                <p><strong>Transaction ID:</strong> ${razorpayPaymentId}</p>
-                <p><strong>Payment Date:</strong> ${new Date().toLocaleString()}</p>
-              </div>
-
-              <div class="details">
-                <h3>Certificate Details:</h3>
-                <p><strong>Certificate Number:</strong> ${member.certificate.certificateNumber}</p>
-                <p><strong>Issue Date:</strong> ${issueDate.toLocaleDateString()}</p>
-                <p><strong>Valid Until:</strong> ${expiryDate.toLocaleDateString()}</p>
-              </div>
-
-              <p>You can now access all member features and download your certificate from your profile.</p>
-            </div>
-            <div class="footer">
-              <p>© 2024 TechFinit. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      try {
-        await sendEmail({
-          to: member.email,
-          subject: '🎉 Payment Successful - Membership Activated - TechFinit',
-          html: emailContent,
-        });
-      } catch (emailError) {
-        console.error('Non-critical error: Failed to send activation success email to', member.email, emailError);
-      }
-
-      console.log(`✅ Payment verified and certificate generated for NEW member: ${member.email}`);
-
+      await sendMembershipEmail(member, 'new', paymentAmount, paymentId, issueDate, expiryDate);
+      
       return {
-        message: 'Payment successful! Your membership has been activated.',
-        paymentType: 'new',
-        paymentStatus: 'completed',
-        amount: paymentAmount,
-        transactionId: razorpayPaymentId,
-        certificateGenerated: true,
-        certificate: {
-          certificateNumber: member.certificate.certificateNumber,
-          issueDate,
-          expiryDate,
-          validFor: '1 year',
-        },
-        memberStatus: 'approved',
+        success: true,
+        message: 'Membership activated successfully!',
+        orderType: 'membership_new',
+        certificate: { number: member.certificate.certificateNumber, expiry: expiryDate }
       };
-
-    } else if (paymentType === 'renewal') {
-      // RENEWAL - Extend certificate
+    } else {
       const previousExpiry = new Date(member.certificate.expiryDate);
       const newExpiry = calculateExpiryDate(previousExpiry);
 
-      // Add to renewal history
       member.renewalHistory.push({
         renewalDate: new Date(),
         previousExpiryDate: previousExpiry,
         newExpiryDate: newExpiry,
         amount: paymentAmount,
-        razorpayPaymentId,
+        razorpayPaymentId: paymentId,
         status: 'completed',
       });
 
-      // Update certificate
       member.certificate.expiryDate = newExpiry;
       member.certificate.status = 'active';
       member.status = 'approved';
 
       await member.save();
-
-      // Send renewal success email
-      const emailContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .success { background: #2196F3; color: white; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; }
-            .details { background: white; padding: 15px; border-left: 4px solid #2196F3; margin: 15px 0; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🔄 Certificate Renewed Successfully!</h1>
-            </div>
-            <div class="content">
-              <div class="success">
-                <h2 style="margin: 0;">✅ Membership Renewed</h2>
-              </div>
-              <p>Hi <strong>${member.member?.fullName || 'Member'}</strong>,</p>
-              <p>Your membership renewal payment has been successfully processed!</p>
-              
-              <div class="details">
-                <h3>Payment Details:</h3>
-                <p><strong>Amount Paid:</strong> ₹${paymentAmount}</p>
-                <p><strong>Transaction ID:</strong> ${razorpayPaymentId}</p>
-                <p><strong>Payment Date:</strong> ${new Date().toLocaleString()}</p>
-              </div>
-
-              <div class="details">
-                <h3>Certificate Details:</h3>
-                <p><strong>Certificate Number:</strong> ${member.certificate.certificateNumber}</p>
-                <p><strong>Previous Expiry:</strong> ${previousExpiry.toLocaleDateString()}</p>
-                <p><strong>New Expiry:</strong> ${newExpiry.toLocaleDateString()}</p>
-                <p><strong>Extended By:</strong> 1 year</p>
-              </div>
-
-              <p>Your certificate has been extended for another year. You can download the updated certificate from your profile.</p>
-            </div>
-            <div class="footer">
-              <p>© 2024 TechFinit. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      try {
-        await sendEmail({
-          to: member.email,
-          subject: '🔄 Certificate Renewed Successfully - TechFinit',
-          html: emailContent,
-        });
-      } catch (emailError) {
-        console.error('Non-critical error: Failed to send renewal success email to', member.email, emailError);
-      }
-
-      console.log(`✅ Payment verified and certificate renewed for member: ${member.email}`);
+      await sendMembershipEmail(member, 'renewal', paymentAmount, paymentId, null, newExpiry, previousExpiry);
 
       return {
-        message: 'Payment successful! Your certificate has been renewed.',
-        paymentType: 'renewal',
-        paymentStatus: 'completed',
-        amount: paymentAmount,
-        transactionId: razorpayPaymentId,
-        certificateRenewed: true,
-        certificate: {
-          certificateNumber: member.certificate.certificateNumber,
-          previousExpiry,
-          newExpiry,
-          extendedBy: '1 year',
-        },
-        memberStatus: 'approved',
+        success: true,
+        message: 'Membership renewed successfully!',
+        orderType: 'membership_renewal',
+        expiry: newExpiry
       };
     }
+};
 
-    throw new ApiError(400, 'Invalid payment type');
+// Helper to keep verifyPayment clean
+const sendMembershipEmail = async (member, type, amount, paymentId, issueDate, expiryDate, prevExpiry) => {
+    const isNew = type === 'new';
+    const emailContent = isNew ? `
+        <h1>🎉 Membership Activated!</h1>
+        <p>Hi ${member.member?.fullName}, your membership is now active.</p>
+        <p><strong>Certificate:</strong> ${member.certificate.certificateNumber}</p>
+        <p><strong>Valid Until:</strong> ${expiryDate.toLocaleDateString()}</p>
+    ` : `
+        <h1>🔄 Membership Renewed!</h1>
+        <p>Hi ${member.member?.fullName}, your membership has been extended.</p>
+        <p><strong>New Expiry:</strong> ${expiryDate.toLocaleDateString()}</p>
+    `;
 
-  } catch (error) {
-    console.error('Error verifying payment:', error);
-
-    // If payment verification fails, mark payment as failed
-    if (razorpayOrderId) {
-      const member = await User.findOne({ 'payment.razorpayOrderId': razorpayOrderId });
-      if (member) {
-        member.payment.status = 'failed';
-        await member.save();
-      }
+    try {
+        await sendEmail({
+            to: member.email,
+            subject: isNew ? '🎉 Membership Activated - TechFinit' : '🔄 Membership Renewed - TechFinit',
+            html: emailContent
+        });
+    } catch (e) {
+        console.error('Non-critical: Email failed', e);
     }
-
-    throw error;
-  }
 };
 
 // 3. Get Payment Status (for UI to show correct button)
@@ -521,14 +447,28 @@ const processWebhook = async (reqBody, signature) => {
 
     if (event === 'payment.failed') {
       await Payment.updateOne({ razorpayOrderId: orderId }, { status: 'failed', razorpayPaymentId: paymentId });
+      // Update Order model for auditing (Production Standard)
+      await Order.updateOne(
+        { razorpayOrderId: orderId },
+        {
+          status: 'failed',
+          razorpayPaymentId: paymentId,
+          'paymentDetails.captured': false,
+          'paymentDetails.error_description': paymentData.error_description || 'Payment failed'
+        }
+      ).catch(err => console.error("Non-critical: Order update failed in webhook", err));
+
       return { success: true, processed: true, status: 'failed' };
     }
 
-    // The `payment.captured` logic triggers verification again independently to guarantee it gets processed even if the browser disconnected.
-    // We do not have the user session, but we do have the order_id, payment_id and can manually trigger verified verification.
+    // Webhook acts as a fail-safe. If frontend verification fails or browser closes,
+    // this block ensures the order is processed.
 
     const existingPayment = await Payment.findOne({ razorpayOrderId: orderId });
-    if (existingPayment && existingPayment.status !== 'completed') {
+    const existingOrder = await Order.findOne({ razorpayOrderId: orderId });
+
+    // If either record is not yet marked as success, process it now (Production Standard)
+    if ((existingPayment && existingPayment.status !== 'completed') || (existingOrder && existingOrder.status !== 'paid')) {
       // We can safely construct artificial verified execution: 
       // Generating signature isn't strict here since we verified the webhook signature above. Let's just pass raw execution block directly if webhook is valid.
       const secret = process.env.RAZORPAY_KEY_SECRET;

@@ -149,12 +149,14 @@ const UpdateRequests = () => {
              <h3 className="text-lg font-black text-slate-800">No Pending Requests</h3>
              <p className="text-xs text-slate-500 font-medium">You don't have any active profile modification requests at this time.</p>
            </div>
-           <button 
-             onClick={() => navigate('/member/profile/edit')}
-             className="inline-flex px-8 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all active:scale-95"
-           >
-             Edit Profile Now
-           </button>
+           {!['rejected', 'submitted', 'change_requested'].includes(requestData?.memberStatus) && (
+             <button 
+               onClick={() => navigate('/member/profile/edit')}
+               className="inline-flex px-8 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all active:scale-95"
+             >
+               Edit Profile Now
+             </button>
+           )}
         </div>
       )}
 

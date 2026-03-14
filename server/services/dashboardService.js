@@ -7,7 +7,7 @@ const getDashboardStats = async () => {
   try {
     // Get member stats
     const totalMembers = await User.countDocuments();
-    const activeMembers = await User.countDocuments({ status: 'active' });
+    const activeMembers = await User.countDocuments({ status: 'approved' });
     const pendingMembers = await User.countDocuments({ status: { $in: ['submitted', 'pending_approval'] } });
     const rejectedMembers = await User.countDocuments({ status: 'rejected' });
 

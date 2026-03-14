@@ -125,7 +125,7 @@ const MemberRegister = () => {
       try {
         const parsed = JSON.parse(saved);
         const parsedData = parsed.formData || parsed;
-        
+
         // Function to deeply merge to preserve default structures
         const merge = (target, source) => {
           if (!source) return target;
@@ -139,7 +139,7 @@ const MemberRegister = () => {
           });
           return result;
         };
-        
+
         setFormData(prev => ({
           ...merge(prev, parsedData),
           password: '', // Security: don't restore passwords
@@ -156,9 +156,9 @@ const MemberRegister = () => {
   useEffect(() => {
     // Save only essential fields, excludes passwords for extra safety although standard in some UX
     const { password, confirmPassword, ...dataToSave } = formData;
-    localStorage.setItem('registration_form', JSON.stringify({ 
+    localStorage.setItem('registration_form', JSON.stringify({
       formData: dataToSave,
-      step 
+      step
     }));
   }, [formData, step]);
 
@@ -187,7 +187,7 @@ const MemberRegister = () => {
       try {
         const response = await memberEndpoints.registration.getApprovedMembers(refSearch)
         if (response.success) {
-          setRefResults(response.data.members.filter(m => 
+          setRefResults(response.data.members.filter(m =>
             !formData.references.some(r => r._id === m._id)
           ))
         }
@@ -226,7 +226,7 @@ const MemberRegister = () => {
 
   const validateField = (name, value) => {
     let error = ''
-    
+
     // Step 1: Account & Personal
     if (name === 'email' && !/^\S+@\S+\.\S+$/.test(value)) error = 'Valid email is required'
     if (name === 'password' && value.length < 8) error = 'Password must be at least 8 characters'
@@ -350,7 +350,7 @@ const MemberRegister = () => {
     } else {
       setError(null)
     }
-    
+
     return isValid
   }
 
@@ -365,7 +365,7 @@ const MemberRegister = () => {
       nextStep()
       return
     }
-    
+
     // Final step validation
     if (!validateStep()) return
 
@@ -375,7 +375,7 @@ const MemberRegister = () => {
     try {
       // Use FormData for multipart/form-data with nested fields (handled by parseNestedBody middleware)
       const data = new FormData()
-      
+
       // Flatten data for dot-notation keys
       const flatten = (obj, prefix = '') => {
         Object.keys(obj).forEach(key => {
@@ -384,21 +384,21 @@ const MemberRegister = () => {
           if (value && typeof value === 'object' && !(value instanceof Date) && !Array.isArray(value)) {
             flatten(value, fieldName)
           } else {
-             if (value !== undefined && value !== '') {
-               data.append(fieldName, value)
-             }
+            if (value !== undefined && value !== '') {
+              data.append(fieldName, value)
+            }
           }
         })
       }
-      
+
       // Remove fields handled separately or not needed by backend
       const { confirmPassword, references, ...submitData } = formData
-      
+
       // Ensure communication address is handled if same as registered
       if (submitData.location.isSameAddress) {
         submitData.location.communicationAddress = submitData.location.registeredAddress;
       }
-      
+
       flatten(submitData)
 
       // Append files
@@ -412,8 +412,8 @@ const MemberRegister = () => {
       }
 
       const response = await memberEndpoints.registration.register(data)
-      
-      
+
+
       if (response && response.success) {
         setSuccess(true)
         localStorage.removeItem('registration_form'); // Clear persistence on success
@@ -496,7 +496,7 @@ const MemberRegister = () => {
 
       <div className="w-full max-w-[800px] animate-fadeUp z-10">
         <div className="bg-slate-900/40 border border-white/5 rounded-[40px] p-8 md:p-12 backdrop-blur-2xl shadow-2xl relative overflow-hidden group">
-          
+
           {/* Progress Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10 pb-10 border-b border-white/5">
             <div>
@@ -506,10 +506,10 @@ const MemberRegister = () => {
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">Secure Enrollment Portal</p>
             </div>
-            
+
             <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-2xl border border-white/5 self-start sm:self-center">
               {[1, 2, 3, 4].map(num => (
-                <div 
+                <div
                   key={num}
                   className={`flex items-center justify-center w-7 h-7 rounded-xl text-[9px] font-black transition-all duration-500 ${step >= num ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-600'}`}
                 >
@@ -525,8 +525,8 @@ const MemberRegister = () => {
             </div>
           )}
 
-          <form 
-            onSubmit={handleSubmit} 
+          <form
+            onSubmit={handleSubmit}
             className="space-y-8"
             onKeyDown={(e) => { if (e.key === 'Enter' && step < 4) e.preventDefault() }}
           >
@@ -537,51 +537,51 @@ const MemberRegister = () => {
                 <div className="space-y-6">
                   <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Personal & Contact Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                    <InputField 
-                      label="Full Name" 
-                      name="member.fullName" 
-                      value={formData.member.fullName} 
-                      onChange={handleChange} 
+                    <InputField
+                      label="Full Name"
+                      name="member.fullName"
+                      value={formData.member.fullName}
+                      onChange={handleChange}
                       onBlur={handleBlur}
                       error={errors['member.fullName']}
                       touched={touched['member.fullName']}
-                      required 
-                      placeholder="Arjun Raghavan" 
+                      required
+                      placeholder="Arjun Raghavan"
                     />
-                    <InputField 
-                      label="Email Address" 
-                      name="email" 
+                    <InputField
+                      label="Email Address"
+                      name="email"
                       type="email"
-                      value={formData.email} 
-                      onChange={handleChange} 
+                      value={formData.email}
+                      onChange={handleChange}
                       onBlur={handleBlur}
                       error={errors['email']}
                       touched={touched['email']}
-                      required 
-                      placeholder="john@example.com" 
+                      required
+                      placeholder="john@example.com"
                     />
-                    <InputField 
-                      label="Mobile Number" 
-                      name="member.mobile" 
+                    <InputField
+                      label="Mobile Number"
+                      name="member.mobile"
                       type="tel"
-                      value={formData.member.mobile} 
-                      onChange={handleChange} 
+                      value={formData.member.mobile}
+                      onChange={handleChange}
                       onBlur={handleBlur}
                       error={errors['member.mobile']}
                       touched={touched['member.mobile']}
-                      required 
-                      placeholder="9876543210" 
+                      required
+                      placeholder="9876543210"
                     />
-                    <InputField 
-                      label="Date of Birth" 
-                      name="member.dateOfBirth" 
+                    <InputField
+                      label="Date of Birth"
+                      name="member.dateOfBirth"
                       type="date"
-                      value={formData.member.dateOfBirth} 
-                      onChange={handleChange} 
+                      value={formData.member.dateOfBirth}
+                      onChange={handleChange}
                       onBlur={handleBlur}
                       error={errors['member.dateOfBirth']}
                       touched={touched['member.dateOfBirth']}
-                      required 
+                      required
                     />
                   </div>
                 </div>
@@ -590,29 +590,29 @@ const MemberRegister = () => {
                 <div className="space-y-6 border-t border-white/5 pt-10">
                   <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Account Security</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                    <InputField 
-                      label="Password" 
-                      name="password" 
+                    <InputField
+                      label="Password"
+                      name="password"
                       type="password"
-                      value={formData.password} 
-                      onChange={handleChange} 
+                      value={formData.password}
+                      onChange={handleChange}
                       onBlur={handleBlur}
                       error={errors['password']}
                       touched={touched['password']}
-                      required 
-                      placeholder="8+ chars (A-z, 1-9)" 
+                      required
+                      placeholder="8+ chars (A-z, 1-9)"
                     />
-                    <InputField 
-                      label="Confirm Password" 
-                      name="confirmPassword" 
+                    <InputField
+                      label="Confirm Password"
+                      name="confirmPassword"
                       type="password"
-                      value={formData.confirmPassword} 
-                      onChange={handleChange} 
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
                       onBlur={handleBlur}
                       error={errors['confirmPassword']}
                       touched={touched['confirmPassword']}
-                      required 
-                      placeholder="Re-enter password" 
+                      required
+                      placeholder="Re-enter password"
                     />
                   </div>
                 </div>
@@ -624,40 +624,40 @@ const MemberRegister = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 animate-fadeIn">
                 <div className="space-y-5">
                   <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Business Identity</h3>
-                  <InputField 
-                    label="Establishment Name" 
-                    name="establishment.name" 
-                    value={formData.establishment.name} 
-                    onChange={handleChange} 
+                  <InputField
+                    label="Establishment Name"
+                    name="establishment.name"
+                    value={formData.establishment.name}
+                    onChange={handleChange}
                     onBlur={handleBlur}
                     error={errors['establishment.name']}
                     touched={touched['establishment.name']}
-                    required 
-                    placeholder="Green Valley Holidays" 
+                    required
+                    placeholder="Green Valley Holidays"
                   />
-                  <InputField 
-                    label="Trade Name" 
-                    name="establishment.tradeName" 
-                    value={formData.establishment.tradeName} 
-                    onChange={handleChange} 
+                  <InputField
+                    label="Trade Name"
+                    name="establishment.tradeName"
+                    value={formData.establishment.tradeName}
+                    onChange={handleChange}
                     onBlur={handleBlur}
                     error={errors['establishment.tradeName']}
                     touched={touched['establishment.tradeName']}
-                    required 
-                    placeholder="GVH Travels" 
+                    required
+                    placeholder="GVH Travels"
                   />
                   <div className="grid grid-cols-2 gap-4">
-                    <InputField 
-                      label="Year" 
-                      name="establishment.yearOfEstablishment" 
+                    <InputField
+                      label="Year"
+                      name="establishment.yearOfEstablishment"
                       type="number"
-                      value={formData.establishment.yearOfEstablishment} 
-                      onChange={handleChange} 
+                      value={formData.establishment.yearOfEstablishment}
+                      onChange={handleChange}
                       onBlur={handleBlur}
                       error={errors['establishment.yearOfEstablishment']}
                       touched={touched['establishment.yearOfEstablishment']}
-                      required 
-                      placeholder="2020" 
+                      required
+                      placeholder="2020"
                     />
                     <div className="space-y-1">
                       <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Business Type</label>
@@ -667,33 +667,33 @@ const MemberRegister = () => {
                     </div>
                   </div>
                   {formData.establishment.businessType === 'Other' && (
-                    <InputField 
-                      label="Please describe your business" 
-                      name="establishment.businessTypeDescription" 
-                      value={formData.establishment.businessTypeDescription} 
-                      onChange={handleChange} 
+                    <InputField
+                      label="Please describe your business"
+                      name="establishment.businessTypeDescription"
+                      value={formData.establishment.businessTypeDescription}
+                      onChange={handleChange}
                       onBlur={handleBlur}
                       error={errors['establishment.businessTypeDescription']}
                       touched={touched['establishment.businessTypeDescription']}
-                      required 
-                      placeholder="e.g. Travel Blogger, Photographer, etc." 
+                      required
+                      placeholder="e.g. Travel Blogger, Photographer, etc."
                     />
                   )}
                 </div>
 
                 <div className="space-y-5">
                   <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Official Contact</h3>
-                  <InputField 
-                    label="Official Email" 
-                    name="establishment.officialEmail" 
+                  <InputField
+                    label="Official Email"
+                    name="establishment.officialEmail"
                     type="email"
-                    value={formData.establishment.officialEmail} 
-                    onChange={handleChange} 
+                    value={formData.establishment.officialEmail}
+                    onChange={handleChange}
                     onBlur={handleBlur}
                     error={errors['establishment.officialEmail']}
                     touched={touched['establishment.officialEmail']}
-                    required 
-                    placeholder="official@company.com" 
+                    required
+                    placeholder="official@company.com"
                   />
                   <div className="space-y-4 pt-2">
                     <label className="flex items-center gap-3 group cursor-pointer">
@@ -702,16 +702,16 @@ const MemberRegister = () => {
                     </label>
                     {formData.establishment.gstRegistered && (
                       <div className="animate-scaleIn">
-                        <InputField 
-                          label="GST Number" 
-                          name="establishment.gstNumber" 
+                        <InputField
+                          label="GST Number"
+                          name="establishment.gstNumber"
                           type="text"
-                          value={formData.establishment.gstNumber} 
-                          onChange={handleChange} 
+                          value={formData.establishment.gstNumber}
+                          onChange={handleChange}
                           onBlur={handleBlur}
                           error={errors['establishment.gstNumber']}
                           touched={touched['establishment.gstNumber']}
-                          placeholder="GSTN1234567890" 
+                          placeholder="GSTN1234567890"
                         />
                       </div>
                     )}
@@ -724,64 +724,64 @@ const MemberRegister = () => {
             {step === 3 && (
               <div className="space-y-8 animate-fadeIn">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                  <InputField 
-                    label="District" 
-                    name="location.district" 
-                    value={formData.location.district} 
-                    onChange={handleChange} 
+                  <InputField
+                    label="District"
+                    name="location.district"
+                    value={formData.location.district}
+                    onChange={handleChange}
                     onBlur={handleBlur}
                     error={errors['location.district']}
                     touched={touched['location.district']}
-                    required 
-                    placeholder="Ernakulam" 
+                    required
+                    placeholder="Ernakulam"
                   />
-                  <InputField 
-                    label="City" 
-                    name="location.city" 
-                    value={formData.location.city} 
-                    onChange={handleChange} 
+                  <InputField
+                    label="City"
+                    name="location.city"
+                    value={formData.location.city}
+                    onChange={handleChange}
                     onBlur={handleBlur}
                     error={errors['location.city']}
                     touched={touched['location.city']}
-                    required 
-                    placeholder="Kochi City" 
+                    required
+                    placeholder="Kochi City"
                   />
-                  <InputField 
-                    label="Region" 
-                    name="location.region" 
-                    value={formData.location.region} 
-                    onChange={handleChange} 
+                  <InputField
+                    label="Region"
+                    name="location.region"
+                    value={formData.location.region}
+                    onChange={handleChange}
                     onBlur={handleBlur}
                     error={errors['location.region']}
                     touched={touched['location.region']}
-                    required 
-                    placeholder="Central" 
+                    required
+                    placeholder="Central"
                   />
-                  <InputField 
-                    label="PIN Code" 
-                    name="location.pinCode" 
-                    value={formData.location.pinCode} 
-                    onChange={handleChange} 
+                  <InputField
+                    label="PIN Code"
+                    name="location.pinCode"
+                    value={formData.location.pinCode}
+                    onChange={handleChange}
                     onBlur={handleBlur}
                     error={errors['location.pinCode']}
                     touched={touched['location.pinCode']}
-                    required 
-                    placeholder="682001" 
+                    required
+                    placeholder="682001"
                   />
                 </div>
-                
-                <InputField 
-                  label="Registered Office Address" 
-                  name="location.registeredAddress" 
+
+                <InputField
+                  label="Registered Office Address"
+                  name="location.registeredAddress"
                   type="textarea"
-                  value={formData.location.registeredAddress} 
-                  onChange={handleChange} 
+                  value={formData.location.registeredAddress}
+                  onChange={handleChange}
                   onBlur={handleBlur}
                   error={errors['location.registeredAddress']}
                   touched={touched['location.registeredAddress']}
-                  required 
+                  required
                   rows="3"
-                  placeholder="Full address of registered office" 
+                  placeholder="Full address of registered office"
                 />
 
                 <div className="flex items-center gap-3 px-1">
@@ -790,15 +790,15 @@ const MemberRegister = () => {
                 </div>
 
                 {!formData.location.isSameAddress && (
-                  <InputField 
-                    label="Communication Address" 
-                    name="location.communicationAddress" 
+                  <InputField
+                    label="Communication Address"
+                    name="location.communicationAddress"
                     type="textarea"
-                    value={formData.location.communicationAddress} 
-                    onChange={handleChange} 
+                    value={formData.location.communicationAddress}
+                    onChange={handleChange}
                     onBlur={handleBlur}
                     rows="3"
-                    placeholder="Full address for communications" 
+                    placeholder="Full address for communications"
                   />
                 )}
               </div>
@@ -812,7 +812,7 @@ const MemberRegister = () => {
                     <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
                     <h2 className="text-white text-sm font-bold uppercase tracking-widest">Verification Documents</h2>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {Object.keys(files).map((key) => (
                       <div key={key} className="space-y-4">
@@ -874,12 +874,12 @@ const MemberRegister = () => {
                   <div className="space-y-4">
                     <div ref={searchContainerRef} className="relative group">
                       {/* Search Bar with Chips */}
-                      <div 
+                      <div
                         className={`min-h-[64px] bg-white/5 border ${formData.references.length >= 2 ? 'border-white/5 opacity-60 cursor-not-allowed' : 'border-white/10 focus-within:border-blue-500/50 hover:border-white/20'} rounded-[24px] px-4 py-3 transition-all flex flex-wrap gap-2 items-center`}
                         onClick={() => formData.references.length < 2 && setShowRefDropdown(true)}
                       >
                         <span className="text-slate-500 ml-2">🔍</span>
-                        
+
                         {/* Selected Chips inside search bar area */}
                         {formData.references.map((ref) => (
                           <div key={ref._id} className="bg-blue-600/20 border border-blue-500/30 rounded-xl pl-3 pr-2 py-1.5 flex items-center gap-2 group/chip animate-scaleIn">
@@ -1013,18 +1013,18 @@ const MemberRegister = () => {
 
               <div className="flex items-center gap-4 w-full sm:w-auto">
                 {step < 4 ? (
-                  <button 
+                  <button
                     key="btn-next"
-                    type="button" 
+                    type="button"
                     onClick={nextStep}
                     className="w-full sm:w-auto bg-blue-600 text-white rounded-2xl px-10 py-4 font-bold text-xs tracking-[0.1em] uppercase transition-all hover:bg-blue-500 hover:-translate-y-0.5 shadow-lg shadow-blue-600/20"
                   >
                     Continue →
                   </button>
                 ) : (
-                  <button 
+                  <button
                     key="btn-submit"
-                    type="submit" 
+                    type="submit"
                     disabled={loading}
                     className="w-full sm:w-auto bg-blue-600 text-white rounded-2xl px-12 py-4 font-bold text-xs tracking-[0.1em] uppercase shadow-xl shadow-blue-600/20 disabled:opacity-50 flex items-center justify-center gap-3 transition-all hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0"
                   >

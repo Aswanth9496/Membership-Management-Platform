@@ -2,6 +2,48 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { memberEndpoints } from '../../data/member'
 
+const Input = ({ label, name, type = "text", placeholder, value, onChange, className = "" }) => (
+  <div className={`space-y-1 ${className}`}>
+    <label className="text-slate-500 text-[9px] font-bold uppercase tracking-widest ml-1">{label}</label>
+    <input 
+      name={name} 
+      type={type} 
+      value={value} 
+      onChange={onChange} 
+      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-xs transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 outline-none placeholder:text-slate-300 shadow-sm" 
+      placeholder={placeholder} 
+    />
+  </div>
+)
+
+const Select = ({ label, name, options, value, onChange, className = "" }) => (
+  <div className={`space-y-1 ${className}`}>
+    <label className="text-slate-500 text-[9px] font-bold uppercase tracking-widest ml-1">{label}</label>
+    <select 
+      name={name} 
+      value={value} 
+      onChange={onChange} 
+      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-xs transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 outline-none shadow-sm appearance-none cursor-pointer"
+    >
+      {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+    </select>
+  </div>
+)
+
+const TextArea = ({ label, name, value, onChange, placeholder, rows = 2, className = "" }) => (
+  <div className={`space-y-1 ${className}`}>
+    <label className="text-slate-500 text-[9px] font-bold uppercase tracking-widest ml-1">{label}</label>
+    <textarea 
+      name={name}
+      value={value}
+      onChange={onChange}
+      rows={rows}
+      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-xs transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 outline-none placeholder:text-slate-300 shadow-sm resize-none"
+      placeholder={placeholder}
+    />
+  </div>
+)
+
 const EditProfile = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -161,47 +203,6 @@ const EditProfile = () => {
     )
   }
 
-  const Input = ({ label, name, type = "text", placeholder, value, className = "" }) => (
-    <div className={`space-y-1 ${className}`}>
-      <label className="text-slate-500 text-[9px] font-bold uppercase tracking-widest ml-1">{label}</label>
-      <input 
-        name={name} 
-        type={type} 
-        value={value} 
-        onChange={handleChange} 
-        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-xs transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 outline-none placeholder:text-slate-300 shadow-sm" 
-        placeholder={placeholder} 
-      />
-    </div>
-  )
-
-  const Select = ({ label, name, options, value, className = "" }) => (
-    <div className={`space-y-1 ${className}`}>
-      <label className="text-slate-500 text-[9px] font-bold uppercase tracking-widest ml-1">{label}</label>
-      <select 
-        name={name} 
-        value={value} 
-        onChange={handleChange} 
-        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-xs transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 outline-none shadow-sm appearance-none cursor-pointer"
-      >
-        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-      </select>
-    </div>
-  )
-
-  const TextArea = ({ label, name, value, placeholder, rows = 2, className = "" }) => (
-    <div className={`space-y-1 ${className}`}>
-      <label className="text-slate-500 text-[9px] font-bold uppercase tracking-widest ml-1">{label}</label>
-      <textarea 
-        name={name}
-        value={value}
-        onChange={handleChange}
-        rows={rows}
-        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-xs transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 outline-none placeholder:text-slate-300 shadow-sm resize-none"
-        placeholder={placeholder}
-      />
-    </div>
-  )
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fadeUp p-2 md:p-4">
@@ -235,23 +236,25 @@ const EditProfile = () => {
               <h3 className="text-slate-800 font-bold text-[10px] uppercase tracking-[0.2em]">Establishment Details</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
-              <Input label="Establishment Name" name="establishment.name" value={formData.establishment.name} />
-              <Input label="Trade Name" name="establishment.tradeName" value={formData.establishment.tradeName} />
-              <Input label="Year" name="establishment.yearOfEstablishment" type="number" value={formData.establishment.yearOfEstablishment} />
+              <Input label="Establishment Name" name="establishment.name" value={formData.establishment.name} onChange={handleChange} />
+              <Input label="Trade Name" name="establishment.tradeName" value={formData.establishment.tradeName} onChange={handleChange} />
+              <Input label="Year" name="establishment.yearOfEstablishment" type="number" value={formData.establishment.yearOfEstablishment} onChange={handleChange} />
               <Select 
                 label="Classification" 
                 name="establishment.officialClassification" 
                 value={formData.establishment.officialClassification} 
+                onChange={handleChange}
                 options={['Proprietorship', 'Partnership', 'Private Limited', 'Public Limited', 'Trust', 'Other']} 
               />
               <Select 
                 label="Business Type" 
                 name="establishment.businessType" 
                 value={formData.establishment.businessType} 
+                onChange={handleChange}
                 options={['Retail', 'Wholesale', 'Service', 'Manufacturing', 'Trading', 'Other']} 
               />
-              <Input label="Official Email" name="establishment.officialEmail" type="email" value={formData.establishment.officialEmail} />
-              <Input label="Website" name="establishment.website" value={formData.establishment.website} placeholder="www.example.com" className="lg:col-span-2" />
+              <Input label="Official Email" name="establishment.officialEmail" type="email" value={formData.establishment.officialEmail} onChange={handleChange} />
+              <Input label="Website" name="establishment.website" value={formData.establishment.website} onChange={handleChange} placeholder="www.example.com" className="lg:col-span-2" />
               <div className="flex items-center gap-2 px-3 py-1 bg-slate-50/50 rounded-lg border border-slate-100 mt-auto h-[34px]">
                 <input 
                   name="establishment.gstRegistered" 
@@ -264,7 +267,7 @@ const EditProfile = () => {
               </div>
               {formData.establishment.gstRegistered && (
                 <div className="animate-scaleIn lg:col-span-1">
-                  <Input label="GST Number" name="establishment.gstNumber" value={formData.establishment.gstNumber} />
+                  <Input label="GST Number" name="establishment.gstNumber" value={formData.establishment.gstNumber} onChange={handleChange} />
                 </div>
               )}
             </div>
@@ -277,12 +280,12 @@ const EditProfile = () => {
               <h3 className="text-slate-800 font-bold text-[10px] uppercase tracking-[0.2em]">Location Information</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
-              <Input label="District" name="location.district" value={formData.location.district} />
-              <Input label="City" name="location.city" value={formData.location.city} />
-              <Input label="Region" name="location.region" value={formData.location.region} />
-              <Input label="PIN Code" name="location.pinCode" value={formData.location.pinCode} />
-              <TextArea label="Registered Address" name="location.registeredAddress" value={formData.location.registeredAddress} className="md:col-span-2 lg:col-span-2" />
-              <TextArea label="Communication Address" name="location.communicationAddress" value={formData.location.communicationAddress} className="md:col-span-2 lg:col-span-2" />
+              <Input label="District" name="location.district" value={formData.location.district} onChange={handleChange} />
+              <Input label="City" name="location.city" value={formData.location.city} onChange={handleChange} />
+              <Input label="Region" name="location.region" value={formData.location.region} onChange={handleChange} />
+              <Input label="PIN Code" name="location.pinCode" value={formData.location.pinCode} onChange={handleChange} />
+              <TextArea label="Registered Address" name="location.registeredAddress" value={formData.location.registeredAddress} onChange={handleChange} className="md:col-span-2 lg:col-span-2" />
+              <TextArea label="Communication Address" name="location.communicationAddress" value={formData.location.communicationAddress} onChange={handleChange} className="md:col-span-2 lg:col-span-2" />
             </div>
           </div>
 
@@ -293,15 +296,16 @@ const EditProfile = () => {
               <h3 className="text-slate-800 font-bold text-[10px] uppercase tracking-[0.2em]">Personal Details</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
-              <Input label="Full Name" name="member.fullName" value={formData.member.fullName} />
-              <Input label="Mobile" name="member.mobile" value={formData.member.mobile} />
-              <Input label="Landline" name="member.landline" value={formData.member.landline} />
-              <Input label="Date of Birth" name="member.dateOfBirth" type="date" value={formData.member.dateOfBirth} />
-              <Input label="Role" name="member.roleInAgency" value={formData.member.roleInAgency} />
+              <Input label="Full Name" name="member.fullName" value={formData.member.fullName} onChange={handleChange} />
+              <Input label="Mobile" name="member.mobile" value={formData.member.mobile} onChange={handleChange} />
+              <Input label="Landline" name="member.landline" value={formData.member.landline} onChange={handleChange} />
+              <Input label="Date of Birth" name="member.dateOfBirth" type="date" value={formData.member.dateOfBirth} onChange={handleChange} />
+              <Input label="Role" name="member.roleInAgency" value={formData.member.roleInAgency} onChange={handleChange} />
               <Select 
                 label="Office Type" 
                 name="member.officeType" 
                 value={formData.member.officeType} 
+                onChange={handleChange}
                 options={['Head Office', 'Branch Office', 'Corporate Office', 'Other']} 
               />
             </div>
@@ -316,13 +320,13 @@ const EditProfile = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-r border-slate-100 pr-4">
                  <div className="md:col-span-2 text-[8px] font-bold text-slate-400 uppercase opacity-60">Partner / Associate</div>
-                 <Input label="Name" name="partner.name" value={formData.partner.name} />
-                 <Input label="Mobile" name="partner.mobile" value={formData.partner.mobile} />
+                 <Input label="Name" name="partner.name" value={formData.partner.name} onChange={handleChange} />
+                 <Input label="Mobile" name="partner.mobile" value={formData.partner.mobile} onChange={handleChange} />
               </div>
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div className="md:col-span-2 text-[8px] font-bold text-slate-400 uppercase opacity-60">Staff Contact</div>
-                 <Input label="Name" name="staff.name" value={formData.staff.name} />
-                 <Input label="Mobile" name="staff.mobile" value={formData.staff.mobile} />
+                 <Input label="Name" name="staff.name" value={formData.staff.name} onChange={handleChange} />
+                 <Input label="Mobile" name="staff.mobile" value={formData.staff.mobile} onChange={handleChange} />
               </div>
             </div>
           </div>
@@ -333,7 +337,7 @@ const EditProfile = () => {
               <span className="text-sm">💬</span>
               <h3 className="text-slate-800 font-bold text-[10px] uppercase tracking-[0.2em]">Submission Justification</h3>
             </div>
-            <TextArea label="Reason for Updates" name="remarks" value={formData.remarks} rows={3} placeholder="Please explain why you are requesting these changes..." />
+            <TextArea label="Reason for Updates" name="remarks" value={formData.remarks} onChange={handleChange} rows={3} placeholder="Please explain why you are requesting these changes..." />
           </div>
 
           {/* Footer Actions */}

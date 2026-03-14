@@ -1,7 +1,10 @@
 const Event = require('../models/Event');
 const User = require('../models/User');
+const Payment = require('../models/Payment');
+const Order = require('../models/Order');
 const ApiError = require('../utils/ApiError');
-const { createOrder, verifyPaymentSignature } = require('../utils/razorpayHelper');
+const { createOrder, verifyPaymentSignature, getRazorpayKeyId } = require('../utils/razorpayHelper');
+// Helper for order numbers is handled inline or via local logic
 
 /**
  * Register a member for an event
@@ -53,13 +56,23 @@ const registerForEvent = async (eventId, memberId, memberInfo = {}) => {
             throw new ApiError(400, 'Event has reached its maximum capacity');
         }
 
-        // 4. Check if member is already registered
-        const isAlreadyRegistered = event.registrations.some(
+        // 4. Check if member is already registered accurately
+        const existingRegistrationIndex = event.registrations.findIndex(
             (reg) => reg.member.toString() === memberId.toString()
         );
 
-        if (isAlreadyRegistered) {
-            throw new ApiError(400, 'You are already registered for this event');
+        if (existingRegistrationIndex !== -1) {
+            const existingReg = event.registrations[existingRegistrationIndex];
+            
+            // If already completed, officially registered.
+            if (existingReg.payment.status === 'completed') {
+                throw new ApiError(400, 'You are already registered for this event');
+            }
+            
+            // If pending or failed, we allow a retry by removing the old stale attempt
+            console.log(`♻️  Retrying registration for member ${memberId}. Removing old ${existingReg.payment.status} attempt.`);
+            event.registrations.splice(existingRegistrationIndex, 1);
+            // Note: We don't save yet, we save after pushing the new one below
         }
 
         // 5. Handle Free Event vs Paid Event
@@ -92,45 +105,83 @@ const registerForEvent = async (eventId, memberId, memberInfo = {}) => {
             };
         } else {
             // PAID EVENT REGISTRATION - Initiate Payment Flow
+            
+            // 1. Calculate tax breakdown (Production Standard)
+            const baseAmount = Math.round(event.price / 1.18);
+            const gstAmount = event.price - baseAmount;
 
-            // Calculate amount
-            let amount = event.price;
-
-            // Create Razorpay order
-            const receipt = `EVT_REG_${eventId}_${memberId}_${Date.now()}`;
+            // 2. Create Razorpay order
+            const receipt = `EVT_${Date.now().toString().slice(-9)}_${Math.floor(Math.random() * 1000)}`;
             const notes = {
                 eventId: eventId.toString(),
                 memberId: memberId.toString(),
                 eventTitle: event.title,
-                type: 'event_registration'
+                type: 'event_booking'
             };
 
-            const order = await createOrder(amount, receipt, notes);
+            const rzpOrder = await createOrder(event.price, receipt, notes);
 
-            // Add pending registration entry
+            // 3. Create Internal PRODUCTION-STANDARD Order
+            const orderNumber = `ORD-EVT-${Date.now()}`;
+            const internalOrder = await Order.create({
+                orderNumber,
+                member: memberId,
+                razorpayOrderId: rzpOrder.id,
+                amount: {
+                    total: event.price,
+                    base: baseAmount,
+                    gst: gstAmount
+                },
+                orderType: 'event_booking',
+                metadata: {
+                    eventId: eventId.toString(),
+                    eventTitle: event.title
+                },
+                history: [{
+                    status: 'created',
+                    description: `Event registration initiated for: ${event.title}`
+                }]
+            });
+
+            // 4. Create Legacy Payment Record
+            await Payment.create({
+                user: memberId,
+                razorpayOrderId: rzpOrder.id,
+                amount: event.price,
+                status: 'pending',
+                paymentType: 'event_registration'
+            });
+
+            // 5. Add pending registration entry to Event model
             event.registrations.push({
                 member: memberId,
                 payment: {
                     status: 'pending',
-                    amount: amount,
-                    transactionId: order.id, // Store order ID as temporary transaction ID
+                    amount: event.price,
+                    transactionId: rzpOrder.id,
                 },
             });
 
-            // We don't increment currentCount yet for paid events until payment is verified
             await event.save();
 
-            console.log(`💳 Payment order created for Event Registration: ${event.title} (Amount: ${amount})`);
+            console.log(`💳 Order created for Event: ${event.title} (ID: ${internalOrder.orderNumber})`);
+
+            const member = await User.findById(memberId);
 
             return {
                 success: true,
                 isPaid: true,
                 message: 'Payment required to complete registration',
+                razorpayKeyId: getRazorpayKeyId(),
                 order: {
-                    id: order.id,
-                    amount: amount,
+                    id: rzpOrder.id,
+                    amount: event.price * 100, // Razorpay expects paise
                     currency: 'INR',
-                    key: process.env.RAZORPAY_KEY_ID,
+                },
+                memberDetails: {
+                    name: member.member?.fullName || '',
+                    email: member.email,
+                    contact: member.member?.mobile || '',
                 },
                 event: {
                     id: event._id,
@@ -152,40 +203,38 @@ const registerForEvent = async (eventId, memberId, memberInfo = {}) => {
  */
 const verifyRegistrationPayment = async (razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
     try {
-        // 1. Verify signature
-        const isValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
-        if (!isValid) {
-            throw new ApiError(400, 'Payment verification failed. Invalid signature.');
-        }
-
-        // 2. Find event containing this order ID
+        // 1. Find event containing this order ID
         const event = await Event.findOne({ 'registrations.payment.transactionId': razorpayOrderId });
         if (!event) {
-            throw new ApiError(404, 'Event registration order not found');
+            throw new ApiError(404, 'Event registration record not found on the event entity');
         }
 
-        // 3. Find specific registration entry
+        // 2. Find specific registration entry
         const registration = event.registrations.find(
-            (reg) => reg.payment.transactionId === razorpayOrderId && reg.payment.status === 'pending'
+            (reg) => reg.payment.transactionId === razorpayOrderId
         );
 
         if (!registration) {
-            throw new ApiError(400, 'Registration already processed or not found');
+            throw new ApiError(400, 'Registration detail not found in event list');
         }
 
-        // 4. Update registration details
+        if (registration.payment.status === 'completed') {
+            return { success: true, alreadyProcessed: true };
+        }
+
+        // 3. Update registration details
         registration.payment.status = 'completed';
-        registration.payment.transactionId = razorpayPaymentId; // Update with actual payment ID
+        registration.payment.transactionId = razorpayPaymentId;
         registration.payment.paidAt = new Date();
         registration.registeredAt = new Date();
 
-        // 5. Increment event capacity count
+        // 4. Increment event capacity count
         event.registration.currentCount += 1;
 
-        // 6. Save event
+        // 5. Save event
         await event.save();
 
-        console.log(`✅ Payment verified for Event: ${event.title}. Member: ${registration.member}`);
+        console.log(`✅ Event registration confirmed for: ${event.title}`);
 
         return {
             success: true,
@@ -196,7 +245,7 @@ const verifyRegistrationPayment = async (razorpayOrderId, razorpayPaymentId, raz
             }
         };
     } catch (error) {
-        console.error('Error verifying registration payment:', error);
+        console.error('Error confirming event registration:', error);
         throw error;
     }
 };

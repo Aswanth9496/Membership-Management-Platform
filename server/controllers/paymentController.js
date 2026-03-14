@@ -12,7 +12,6 @@ const getStatus = async (req, res) => {
 
 // Create Payment Order
 const createOrder = async (req, res) => {
-  console.log("Creating order...");
   const memberId = req.member._id;
 
   const result = await createPaymentOrder(memberId);

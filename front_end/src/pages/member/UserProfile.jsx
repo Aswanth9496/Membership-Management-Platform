@@ -33,19 +33,87 @@ const UserProfile = () => {
     }
   }
 
-  const handlePaymentBypass = async () => {
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+  }
+
+  const handlePayment = async () => {
     try {
       setLoading(true)
-      const res = await memberEndpoints.payments.dummySuccess()
-      if (res.success) {
-        setSuccessMessage('Payment successful! Your membership is now active.')
-        await fetchProfile()
-      } else {
-        setError(res.message || 'Payment bypass failed')
+      setError(null)
+
+      // 1. Load Razorpay script
+      const resScript = await loadRazorpayScript()
+      if (!resScript) {
+        setError('Razorpay SDK failed to load. Check your internet connection.')
+        setLoading(false)
+        return
       }
+
+      // 2. Create order on backend
+      const orderRes = await memberEndpoints.payments.createOrder()
+      if (!orderRes.success) {
+        setError(orderRes.message || 'Failed to create payment order')
+        setLoading(false)
+        return
+      }
+
+      const { orderId, amount, currency, keyId, memberDetails, notes } = orderRes.data
+
+      // 3. Initialize Razorpay Checkout
+      const options = {
+        key: keyId,
+        amount: amount,
+        currency: currency,
+        name: 'TechFinit Association',
+        description: profile.payment?.type === 'new' ? 'Membership Registration' : 'Membership Renewal',
+        order_id: orderId,
+        handler: async (response) => {
+          try {
+            setLoading(true)
+            // 4. Verify payment on backend
+            const verifyRes = await memberEndpoints.payments.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            })
+
+            if (verifyRes.success) {
+              setSuccessMessage(verifyRes.message || 'Payment successful! Your membership is now active.')
+              await fetchProfile()
+            } else {
+              setError(verifyRes.message || 'Payment verification failed')
+            }
+          } catch (err) {
+            console.error('Payment verification error:', err)
+            setError('Error verifying payment. Please contact support.')
+          } finally {
+            setLoading(false)
+          }
+        },
+        prefill: {
+          name: memberDetails.name,
+          email: memberDetails.email,
+          contact: memberDetails.contact,
+        },
+        notes: notes,
+        theme: {
+          color: '#2563EB',
+        },
+      }
+
+      const paymentObject = new window.Razorpay(options)
+      paymentObject.open()
     } catch (err) {
-      console.error('Payment bypass error:', err)
-      setError('An error occurred during payment bypass')
+      console.error('Payment initialization error:', err)
+      setError('Failed to initialize payment')
     } finally {
       setLoading(false)
     }
@@ -125,58 +193,59 @@ const UserProfile = () => {
           </div>
           <div className="text-center md:text-left flex-1 min-w-0">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
-               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate">
-                 {profile.member?.fullName}
-               </h1>
-               <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
-                 profile.status === 'approved' 
-                   ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100' 
-                   : 'bg-amber-500/20 border-amber-500/30 text-amber-100'
-               }`}>
-                 {profile.status}
-               </span>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate">
+                {profile.member?.fullName}
+              </h1>
+              <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${profile.status === 'approved'
+                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100'
+                  : 'bg-amber-500/20 border-amber-500/30 text-amber-100'
+                }`}>
+                {profile.status}
+              </span>
             </div>
-            
+
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 opacity-80">
-               <p className="text-xs font-semibold flex items-center gap-2">
-                 <span className="opacity-60 text-base">📧</span> {profile.email}
-               </p>
-               <p className="text-xs font-semibold flex items-center gap-2">
-                 <span className="opacity-60 text-base">📞</span> {profile.member?.mobile}
-               </p>
-               <p className="text-xs font-bold uppercase tracking-widest px-2 py-0.5 bg-white/10 rounded-md">
-                 {profile.membershipType}
-               </p>
+              <p className="text-xs font-semibold flex items-center gap-2">
+                <span className="opacity-60 text-base">📧</span> {profile.email}
+              </p>
+              <p className="text-xs font-semibold flex items-center gap-2">
+                <span className="opacity-60 text-base">📞</span> {profile.member?.mobile}
+              </p>
+              <p className="text-xs font-bold uppercase tracking-widest px-2 py-0.5 bg-white/10 rounded-md">
+                {profile.membershipType}
+              </p>
             </div>
           </div>
-          
-          <div className="shrink-0 flex gap-3 flex-wrap justify-center md:justify-end">
-             {/* Conditional Payment Button */}
-             {profile.status === 'verified' && 
-              profile.approvals?.president?.approved && 
-              profile.approvals?.secretary?.approved && 
-              profile.approvals?.treasurer?.approved && 
-              profile.payment?.status === 'pending' && (
-               <button 
-                 onClick={handlePaymentBypass}
-                 disabled={loading}
-                 className="px-6 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center gap-2 disabled:opacity-50"
-               >
-                 <span className="text-sm">💳</span>
-                 {loading ? 'Processing...' : (
-                   profile.payment?.type === 'new' 
-                     ? `Complete Payment ${paymentStatus?.amount?.totalAmount ? `(₹${paymentStatus.amount.totalAmount})` : ''}` 
-                     : `Renew Membership ${paymentStatus?.amount?.totalAmount ? `(₹${paymentStatus.amount.totalAmount})` : ''}`
-                 )}
-               </button>
-             )}
 
-             <button 
-               onClick={() => navigate('/member/profile/edit')}
-               className="px-6 py-2.5 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95"
-             >
-               Edit Profile
-             </button>
+          <div className="shrink-0 flex gap-3 flex-wrap justify-center md:justify-end">
+            {/* Conditional Payment Button */}
+            {profile.status === 'verified' &&
+              profile.approvals?.president?.approved &&
+              profile.approvals?.secretary?.approved &&
+              profile.approvals?.treasurer?.approved &&
+              profile.payment?.status === 'pending' && (
+                <button
+                  onClick={handlePayment}
+                  disabled={loading}
+                  className="px-6 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                >
+                  <span className="text-sm">💳</span>
+                  {loading ? 'Processing...' : (
+                    profile.payment?.type === 'new'
+                      ? `Complete Payment ${paymentStatus?.amount?.totalAmount ? `(₹${paymentStatus.amount.totalAmount})` : ''}`
+                      : `Renew Membership ${paymentStatus?.amount?.totalAmount ? `(₹${paymentStatus.amount.totalAmount})` : ''}`
+                  )}
+                </button>
+              )}
+
+            {!['rejected', 'submitted', 'change_requested'].includes(profile.status) && (
+              <button
+                onClick={() => navigate('/member/profile/edit')}
+                className="px-6 py-2.5 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95"
+              >
+                Edit Profile
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -235,19 +304,19 @@ const UserProfile = () => {
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Agency Address Proof</p>
           {profile.documents?.agencyAddressProof ? (
             <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm group">
-               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">📄</div>
-               <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-black text-slate-800 truncate">Address_Proof.pdf</p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase">Uploaded on {new Date(profile.documents.agencyAddressProof.uploadedAt).toLocaleDateString()}</p>
-               </div>
-               <a 
-                 href={profile.documents.agencyAddressProof.url} 
-                 target="_blank" 
-                 rel="noopener noreferrer"
-                 className="px-4 py-1.5 bg-slate-50 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-600 hover:text-white transition-all"
-               >
-                 View
-               </a>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">📄</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-black text-slate-800 truncate">Address_Proof.pdf</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase">Uploaded on {new Date(profile.documents.agencyAddressProof.uploadedAt).toLocaleDateString()}</p>
+              </div>
+              <a
+                href={profile.documents.agencyAddressProof.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-1.5 bg-slate-50 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-600 hover:text-white transition-all"
+              >
+                View
+              </a>
             </div>
           ) : (
             <p className="text-[10px] text-slate-300 font-bold italic">Not Uploaded</p>
@@ -258,19 +327,19 @@ const UserProfile = () => {
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Shop Photo / Logo</p>
           {profile.documents?.shopPhoto ? (
             <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm group">
-               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">🖼️</div>
-               <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-black text-slate-800 truncate">Shop_Photo.pdf</p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase">Uploaded on {new Date(profile.documents.shopPhoto.uploadedAt).toLocaleDateString()}</p>
-               </div>
-               <a 
-                 href={profile.documents.shopPhoto.url} 
-                 target="_blank" 
-                 rel="noopener noreferrer"
-                 className="px-4 py-1.5 bg-slate-50 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-600 hover:text-white transition-all"
-               >
-                 View
-               </a>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">🖼️</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-black text-slate-800 truncate">Shop_Photo.pdf</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase">Uploaded on {new Date(profile.documents.shopPhoto.uploadedAt).toLocaleDateString()}</p>
+              </div>
+              <a
+                href={profile.documents.shopPhoto.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-1.5 bg-slate-50 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-600 hover:text-white transition-all"
+              >
+                View
+              </a>
             </div>
           ) : (
             <p className="text-[10px] text-slate-300 font-bold italic">Not Uploaded</p>
