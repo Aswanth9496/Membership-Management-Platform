@@ -47,14 +47,14 @@ const createReferenceRequests = async (applicantId, referenceIds) => {
         agencyName
       );
 
-      await sendEmail({
+      const info = await sendEmail({
         to: referencedMember.email,
         subject: '📝 Reference Request Confirmation - techfinit',
         html: emailHtml,
       });
-      console.log(`Successfully sent reference request email to ${referencedMember.email}`);
+      console.log(`[Email Log] Reference request email sent to ${referencedMember.email} (ID: ${info.messageId})`);
     } catch (error) {
-      console.error(`ERROR in createReferenceRequests for ref ${refId}:`, error);
+      console.error(`[Email Error] Failed to send reference request to ${refId}:`, error.message);
     }
   }
 };

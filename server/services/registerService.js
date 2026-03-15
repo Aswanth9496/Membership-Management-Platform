@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
+const { sendEmail } = require('../utils/emailService');
+const { welcomeTemplate } = require('../utils/emailTemplates');
 
 const checkEmailExists = async (email) => {
   const user = await User.findOne({ email });
@@ -145,9 +147,16 @@ const formatUserResponse = (user) => {
 };
 
 const { createReferenceRequests } = require('./referenceService');
+const RegistrationOTP = require('../models/RegistrationOTP');
 
 const registerUser = async (body) => {
   const { email, member, referredBy } = body;
+
+  // 1. Mandatory Email Verification Check
+  const otpRecord = await RegistrationOTP.findOne({ email, isVerified: true });
+  if (!otpRecord) {
+    throw new ApiError(400, 'Email not verified. Please verify your email via OTP before submitting.');
+  }
 
   await checkEmailExists(email);
 
@@ -169,17 +178,28 @@ const registerUser = async (body) => {
 
   // Trigger reference verification workflow
   if (user.referral?.references?.length > 0) {
-    console.log(`Triggering reference requests for user ${user._id}. References: ${user.referral.references.length}`);
+    console.log(`[Email Log] Triggering reference requests for user ${user._id}. References: ${user.referral.references.length}`);
     // We don't await this to keep registration fast, or we can await it if we want to ensure emails sent
     createReferenceRequests(user._id, user.referral.references).catch(err => {
-      console.error('CRITICAL: Reference request creation failed:', err);
+      console.error('[Email Error] Reference request creation failed:', err.message);
     });
   } else {
-    console.log(`No references found for user ${user._id}`);
+    console.log(`[Email Log] No references found for user ${user._id}`);
   }
 
+  // Trigger Welcome Email
+  console.log(`[Email Log] Triggering welcome email for new member: ${user.email}`);
+  const welcomeHtml = welcomeTemplate(user.member?.fullName || 'Member');
+  sendEmail({
+    to: user.email,
+    subject: '🎉 Welcome to techfinit - Registration Submitted',
+    html: welcomeHtml
+  }).catch(err => {
+    console.error(`[Email Error] Failed to send welcome email to ${user.email}:`, err.message);
+  });
+
   return user;
-};
+}
 
 module.exports = {
   checkEmailExists,

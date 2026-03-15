@@ -50,6 +50,16 @@ const MembersManagement = () => {
     return colors[status] || 'bg-gray-100 text-gray-800'
   }
 
+  // Reference status colors
+  const getReferenceStatusColor = (status) => {
+    const colors = {
+      pending: 'bg-amber-50 text-amber-600 border-amber-100',
+      confirmed: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+      rejected: 'bg-red-50 text-red-600 border-red-100',
+    }
+    return colors[status] || 'bg-gray-50 text-gray-500 border-gray-100'
+  }
+
   // Fetch members
   const fetchMembers = async () => {
     try {
@@ -371,6 +381,9 @@ const MembersManagement = () => {
                       Application Status
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ref Verification
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Account Status
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -400,6 +413,27 @@ const MembersManagement = () => {
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(member.status)}`}>
                           {member.status || 'N/A'}
                         </span>
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        <div className="flex -space-x-2 overflow-hidden">
+                          {member.referenceStatuses && member.referenceStatuses.length > 0 ? (
+                            member.referenceStatuses.map((ref, idx) => (
+                              <div 
+                                key={ref.id || idx} 
+                                title={`${ref.name}: ${ref.status}`}
+                                className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold uppercase ${
+                                  ref.status === 'confirmed' ? 'bg-emerald-500 text-white' : 
+                                  ref.status === 'rejected' ? 'bg-red-500 text-white' : 
+                                  'bg-amber-500 text-white'
+                                }`}
+                              >
+                                {ref.name?.charAt(0)}
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-gray-400 italic">None</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -739,6 +773,37 @@ const MembersManagement = () => {
                         >
                           🪪 Business Card
                         </a>
+                      )}
+                    </div>
+                  </section>
+
+                  <section>
+                    <h4 className="text-xs font-bold text-sky-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-sky-600 rounded-full"></span>
+                      Reference Verifications
+                    </h4>
+                    <div className="space-y-2">
+                      {selectedMember.referenceStatuses && selectedMember.referenceStatuses.length > 0 ? (
+                        selectedMember.referenceStatuses.map((ref) => (
+                          <div key={ref.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400">
+                                {ref.name?.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-gray-800">{ref.name}</p>
+                                <p className="text-[10px] text-gray-500">{ref.membershipNumber} • {ref.email}</p>
+                              </div>
+                            </div>
+                            <div className={`px-2 py-1 rounded-md border text-[9px] font-black uppercase tracking-wider ${getReferenceStatusColor(ref.status)}`}>
+                              {ref.status}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 border border-dashed border-gray-200 rounded-xl text-center">
+                          <p className="text-xs text-gray-400 italic">No references provided by this applicant</p>
+                        </div>
                       )}
                     </div>
                   </section>

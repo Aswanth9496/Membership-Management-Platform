@@ -46,10 +46,10 @@ const requestMemberPasswordResetOTP = async (email) => {
     await member.save();
 
     // Send OTP email
+    console.log(`[Email Log] Sending Password Reset OTP to Member: ${member.email}`);
     const emailContent = forgotPasswordTemplate(member.member?.fullName || 'Member', otp);
-
-   
-    await sendEmail({to: member.email, subject: 'Password Reset OTP - TechFinit', html: emailContent});
+    const info = await sendEmail({to: member.email, subject: 'Password Reset OTP - TechFinit', html: emailContent});
+    console.log(`[Email Log] Member OTP email sent successfully. MessageID: ${info.messageId}`);
 
 
     return {
