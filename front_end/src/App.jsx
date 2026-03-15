@@ -19,6 +19,7 @@ import MemberEvents from './pages/member/MemberEvents'
 import Payments from './pages/member/Payments'
 import MemberDashboard from './pages/member/MemberDashboard'
 import MemberCertificate from './pages/member/MemberCertificate'
+import MemberReferences from './pages/member/MemberReferences'
 
 function App() {
   return (
@@ -55,6 +56,7 @@ function App() {
             <Route path="events" element={<MemberEvents />} />
             <Route path="payments" element={<Payments />} />
             <Route path="certificate" element={<MemberCertificate />} />
+            <Route path="references" element={<MemberReferences />} />
             <Route path="transactions" element={<div className="p-8"><h2 className="text-2xl font-bold text-gray-800 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">My Transactions</h2></div>} />
           </Route>
         </Routes>

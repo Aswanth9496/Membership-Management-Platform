@@ -92,6 +92,11 @@ const userSchema = new mongoose.Schema(
 
     // LOCATION DETAILS
     location: {
+      state: {
+        type: String,
+        required: [true, 'State is required'],
+        trim: true,
+      },
       district: {
         type: String,
         required: [true, 'District is required'],
@@ -110,7 +115,7 @@ const userSchema = new mongoose.Schema(
       pinCode: {
         type: String,
         required: [true, 'Pin code is required'],
-        match: [/^6\d{5}$/, 'Pin code must be 6 digits starting with 6'],
+        match: [/^\d{6}$/, 'Pin code must be a 6-digit number'],
       },
       registeredAddress: {
         type: String,

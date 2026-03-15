@@ -40,12 +40,16 @@ const AdminHeaderNew = () => {
 
         {/* User Menu */}
         <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-sm font-medium text-gray-800">Admin User</p>
-            <p className="text-xs text-gray-500">Administrator</p>
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-medium text-gray-800">{admin.user?.fullName || 'Admin User'}</p>
+            <p className="text-xs text-gray-500 capitalize">{admin.user?.role?.replace('_', ' ') || 'Administrator'}</p>
           </div>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white font-bold">
-            {admin.user?.fullName?.charAt(0).toUpperCase() || 'A'}
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white font-bold overflow-hidden border border-sky-100 shadow-sm">
+            {admin.user?.profilePic?.url ? (
+              <img src={admin.user.profilePic.url} alt={admin.user?.fullName} className="w-full h-full object-cover" />
+            ) : (
+              <span>{admin.user?.fullName?.charAt(0).toUpperCase() || 'A'}</span>
+            )}
           </div>
         </div>
 

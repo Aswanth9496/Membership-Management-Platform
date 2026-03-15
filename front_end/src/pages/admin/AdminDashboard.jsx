@@ -205,9 +205,9 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Content Grid - Fully Responsive */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
         {/* Recent Activities - Responsive */}
-        <div className="xl:col-span-2 bg-white rounded-xl border border-gray-200">
+        <div className="xl:col-span-3 bg-white rounded-xl border border-gray-200">
           <div className="p-4 sm:p-6 border-b border-gray-200">
             <h3 className="text-base sm:text-lg font-semibold text-gray-800">Recent Member Applications</h3>
           </div>
@@ -276,13 +276,8 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Reference Verification Requests - Responsive */}
-        <div className="xl:col-span-2">
-           <AdminReferenceRequests />
-        </div>
-
         {/* Quick Actions - Responsive */}
-        <div className="bg-white rounded-xl border border-gray-200">
+        <div className="xl:col-span-1 bg-white rounded-xl border border-gray-200">
           <div className="p-4 sm:p-6 border-b border-gray-200">
             <h3 className="text-base sm:text-lg font-semibold text-gray-800">Quick Actions</h3>
           </div>
@@ -302,6 +297,11 @@ const AdminDashboard = () => {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Reference Verification Requests - Responsive */}
+        <div className="xl:col-span-4">
+           <AdminReferenceRequests />
         </div>
       </div>
     </div>

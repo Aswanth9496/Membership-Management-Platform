@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 
 const AdminSidebar = () => {
+  const admin = useSelector(state => state.auth.admin)
   const menuItems = [
     { icon: '📊', label: 'Dashboard', path: '/admin' },
     { icon: '👥', label: 'Members', path: '/admin/members' },
@@ -52,12 +54,16 @@ const AdminSidebar = () => {
       {/* User Section */}
       <div className="p-4 border-t border-gray-100">
         <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white text-sm font-bold">
-            A
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+            {admin.user?.profilePic?.url ? (
+              <img src={admin.user.profilePic.url} alt={admin.user?.fullName} className="w-full h-full object-cover" />
+            ) : (
+              <span>{admin.user?.fullName?.charAt(0).toUpperCase() || 'A'}</span>
+            )}
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-gray-800">Admin User</p>
-            <p className="text-xs text-gray-500">admin@taskcommunity.com</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-800 truncate">{admin.user?.fullName || 'Admin User'}</p>
+            <p className="text-xs text-gray-500 truncate">{admin.user?.email || 'admin@taskcommunity.com'}</p>
           </div>
         </div>
       </div>

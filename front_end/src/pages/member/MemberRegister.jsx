@@ -25,6 +25,11 @@ const BUSINESS_TYPES = [
   'Other'
 ];
 
+const OFFICE_TYPES = ['Head Office', 'Branch Office', 'Regional Office', 'Other'];
+const ROLES_IN_AGENCY = ['Owner', 'Partner', 'Director', 'Manager', 'Authorized Representative', 'Other'];
+const OFFICIAL_CLASSIFICATIONS = ['Proprietorship', 'Partnership', 'Private Limited', 'Public Limited', 'LLP', 'Other'];
+
+
 const InputField = ({ label, name, type = "text", value, onChange, onBlur, placeholder, error, touched, required, ...props }) => (
   <div className="space-y-1">
     <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">{label} {required && <span className="text-red-500">*</span>}</label>
@@ -81,9 +86,10 @@ const MemberRegister = () => {
       gstNumber: '',
     },
     location: {
+      state: '',
       district: '',
-      region: '',
       city: '',
+      region: '',
       pinCode: '',
       registeredAddress: '',
       communicationAddress: '',
@@ -233,22 +239,32 @@ const MemberRegister = () => {
     if (name === 'password' && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) error = 'Must have uppercase, lowercase and number'
     if (name === 'confirmPassword' && value !== formData.password) error = 'Passwords do not match'
     if (name === 'member.fullName' && !value.trim()) error = 'Full name is required'
+    if (name === 'member.roleInAgency' && !value.trim()) error = 'Role is required'
+    if (name === 'member.officeType' && !value.trim()) error = 'Office type is required'
     if (name === 'member.mobile' && !/^[6-9]\d{9}$/.test(value)) error = 'Valid 10-digit mobile required'
+    if (name === 'member.landline' && value && !/^\d{8,15}$/.test(value)) error = 'Invalid landline number'
     if (name === 'member.dateOfBirth' && !value) error = 'Date of birth is required'
 
     // Step 2: Establishment
     if (name === 'establishment.name' && !value.trim()) error = 'Establishment name is required'
     if (name === 'establishment.tradeName' && !value.trim()) error = 'Trade name is required'
+    if (name === 'establishment.officialClassification' && !value.trim()) error = 'Official classification is required'
     if (name === 'establishment.yearOfEstablishment' && (!value || value < 1800 || value > new Date().getFullYear())) error = 'Invalid year'
     if (name === 'establishment.officialEmail' && !/^\S+@\S+\.\S+$/.test(value)) error = 'Valid official email required'
     if (name === 'establishment.businessTypeDescription' && formData.establishment.businessType === 'Other' && !value.trim()) error = 'Description is required'
+    if (name === 'establishment.website' && value && !/^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/.test(value)) error = 'Invalid website URL'
+
 
     // Step 3: Location
+    if (name === 'location.state' && !value.trim()) error = 'State is required'
     if (name === 'location.district' && !value.trim()) error = 'District is required'
     if (name === 'location.city' && !value.trim()) error = 'City is required'
-    if (name === 'location.region' && !value.trim()) error = 'Region is required'
-    if (name === 'location.pinCode' && !/^6\d{5}$/.test(value)) error = 'Valid 6-digit PIN starting with 6 required'
+    if (name === 'location.region' && !value.trim()) error = 'Location/Region is required'
+    if (name === 'location.pinCode' && !/^\d{6}$/.test(value)) error = 'Valid 6-digit Pincode required'
     if (name === 'location.registeredAddress' && !value.trim()) error = 'Registered office address is required'
+    
+    // References (Special check)
+    if (name === 'references' && (!value || value.length === 0)) error = 'At least one reference is mandatory'
 
     setErrors(prev => ({ ...prev, [name]: error }))
     return error === ''
@@ -274,7 +290,11 @@ const MemberRegister = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    const finalValue = type === 'checkbox' ? checked : value
+    let finalValue = type === 'checkbox' ? checked : value
+
+    if (name === 'location.pinCode') {
+      finalValue = value.replace(/\D/g, '').slice(0, 6)
+    }
 
     if (name.includes('.')) {
       const [section, field] = name.split('.')
@@ -317,17 +337,21 @@ const MemberRegister = () => {
       check('password', formData.password)
       check('confirmPassword', formData.confirmPassword)
       check('member.fullName', formData.member.fullName)
+      check('member.roleInAgency', formData.member.roleInAgency)
+      check('member.officeType', formData.member.officeType)
       check('member.mobile', formData.member.mobile)
       check('member.dateOfBirth', formData.member.dateOfBirth)
     } else if (step === 2) {
       check('establishment.name', formData.establishment.name)
       check('establishment.tradeName', formData.establishment.tradeName)
+      check('establishment.officialClassification', formData.establishment.officialClassification)
       check('establishment.officialEmail', formData.establishment.officialEmail)
       check('establishment.yearOfEstablishment', formData.establishment.yearOfEstablishment)
       if (formData.establishment.businessType === 'Other') {
         check('establishment.businessTypeDescription', formData.establishment.businessTypeDescription)
       }
     } else if (step === 3) {
+      check('location.state', formData.location.state)
       check('location.district', formData.location.district)
       check('location.city', formData.location.city)
       check('location.region', formData.location.region)
@@ -340,6 +364,9 @@ const MemberRegister = () => {
       if (!files.businessCard) { isValid = false; stepErrors['businessCard'] = 'Business card is required'; }
       if (!files.agencyLogo) { isValid = false; stepErrors['agencyLogo'] = 'Agency logo is required'; }
       if (!files.memberPhoto) { isValid = false; stepErrors['memberPhoto'] = 'Main member photo is required'; }
+      
+      // Added reference check in step 4
+      check('references', formData.references)
     }
 
     if (!isValid) {
@@ -369,6 +396,7 @@ const MemberRegister = () => {
     // Final step validation
     if (!validateStep()) return
 
+    console.log("Submitting form data:", formData);
     setLoading(true)
     setError(null)
 
@@ -583,6 +611,28 @@ const MemberRegister = () => {
                       touched={touched['member.dateOfBirth']}
                       required
                     />
+                    <InputField
+                      label="Landline (Optional)"
+                      name="member.landline"
+                      value={formData.member.landline}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      error={errors['member.landline']}
+                      touched={touched['member.landline']}
+                      placeholder="0484-2345678"
+                    />
+                    <div className="space-y-1">
+                      <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Office Type <span className="text-red-500">*</span></label>
+                      <select name="member.officeType" value={formData.member.officeType} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-3.5 text-white text-sm focus:border-blue-500 outline-none">
+                        {OFFICE_TYPES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Role in Agency <span className="text-red-500">*</span></label>
+                      <select name="member.roleInAgency" value={formData.member.roleInAgency} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-3.5 text-white text-sm focus:border-blue-500 outline-none">
+                        {ROLES_IN_AGENCY.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -666,6 +716,12 @@ const MemberRegister = () => {
                       </select>
                     </div>
                   </div>
+                  <div className="space-y-1">
+                    <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Official Classification <span className="text-red-500">*</span></label>
+                    <select name="establishment.officialClassification" value={formData.establishment.officialClassification} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-3.5 text-white text-sm focus:border-blue-500 outline-none">
+                      {OFFICIAL_CLASSIFICATIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
                   {formData.establishment.businessType === 'Other' && (
                     <InputField
                       label="Please describe your business"
@@ -695,6 +751,17 @@ const MemberRegister = () => {
                     required
                     placeholder="official@company.com"
                   />
+                  <InputField
+                    label="Website URL (Optional)"
+                    name="establishment.website"
+                    type="url"
+                    value={formData.establishment.website}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={errors['establishment.website']}
+                    touched={touched['establishment.website']}
+                    placeholder="https://www.company.com"
+                  />
                   <div className="space-y-4 pt-2">
                     <label className="flex items-center gap-3 group cursor-pointer">
                       <input name="establishment.gstRegistered" type="checkbox" checked={formData.establishment.gstRegistered} onChange={handleChange} className="w-5 h-5 rounded-lg bg-white/5 border-white/10 checked:bg-blue-600 transition-all" />
@@ -717,13 +784,68 @@ const MemberRegister = () => {
                     )}
                   </div>
                 </div>
+
+                <div className="md:col-span-2 space-y-6 pt-6 border-t border-white/5">
+                  <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em]">Additional Contacts (Optional)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <p className="text-slate-500 text-[9px] font-bold uppercase tracking-widest pl-1">Partner Details</p>
+                      <InputField
+                        label="Partner Name"
+                        name="partner.name"
+                        value={formData.partner.name}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        placeholder="Partner Full Name"
+                      />
+                      <InputField
+                        label="Partner Mobile"
+                        name="partner.mobile"
+                        value={formData.partner.mobile}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        placeholder="Partner Contact Number"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <p className="text-slate-500 text-[9px] font-bold uppercase tracking-widest pl-1">Staff Details</p>
+                      <InputField
+                        label="Staff Contact Person"
+                        name="staff.name"
+                        value={formData.staff.name}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        placeholder="Staff Full Name"
+                      />
+                      <InputField
+                        label="Staff Mobile"
+                        name="staff.mobile"
+                        value={formData.staff.mobile}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        placeholder="Staff Contact Number"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* STEP 3: LOCATION */}
+            {/* STEP 3: ADDRESS & LOCATION */}
             {step === 3 && (
               <div className="space-y-8 animate-fadeIn">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
+                  <InputField
+                    label="State"
+                    name="location.state"
+                    value={formData.location.state}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={errors['location.state']}
+                    touched={touched['location.state']}
+                    required
+                    placeholder="Kerala"
+                  />
                   <InputField
                     label="District"
                     name="location.district"
@@ -755,10 +877,10 @@ const MemberRegister = () => {
                     error={errors['location.region']}
                     touched={touched['location.region']}
                     required
-                    placeholder="Central"
+                    placeholder="Central Area"
                   />
                   <InputField
-                    label="PIN Code"
+                    label="Pincode"
                     name="location.pinCode"
                     value={formData.location.pinCode}
                     onChange={handleChange}
@@ -766,6 +888,7 @@ const MemberRegister = () => {
                     error={errors['location.pinCode']}
                     touched={touched['location.pinCode']}
                     required
+                    maxLength={6}
                     placeholder="682001"
                   />
                 </div>
@@ -781,7 +904,7 @@ const MemberRegister = () => {
                   touched={touched['location.registeredAddress']}
                   required
                   rows="3"
-                  placeholder="Full address of registered office"
+                  placeholder="Enter the complete official address"
                 />
 
                 <div className="flex items-center gap-3 px-1">
@@ -866,9 +989,15 @@ const MemberRegister = () => {
                   <div className="flex items-center justify-between mb-2 px-1">
                     <div className="flex items-center gap-3">
                       <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
-                      <h2 className="text-white text-sm font-bold uppercase tracking-widest">Existing Member Reference</h2>
+                      <h2 className="text-white text-sm font-bold uppercase tracking-widest">Member References <span className="text-red-500">*</span></h2>
                     </div>
-                    <span className="text-slate-500 text-[9px] font-bold uppercase bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/5">Optional</span>
+                    <span className={`px-2.5 py-1.5 rounded-xl border text-[9px] font-bold uppercase transition-all ${
+                      errors['references'] && touched['references'] 
+                      ? 'bg-red-500/10 border-red-500/30 text-red-400' 
+                      : 'bg-white/5 border-white/5 text-slate-500'
+                    }`}>
+                      {formData.references.length === 0 ? 'Verification Required' : `${formData.references.length} Reference(s) Added`}
+                    </span>
                   </div>
 
                   <div className="space-y-4">
@@ -975,6 +1104,12 @@ const MemberRegister = () => {
                             </div>
                           )}
                         </div>
+                      )}
+                      
+                      {errors['references'] && touched['references'] && (
+                        <p className="absolute -bottom-6 left-4 text-red-500 text-[9px] font-bold uppercase tracking-tighter animate-fadeIn">
+                          {errors['references']}
+                        </p>
                       )}
                     </div>
 
