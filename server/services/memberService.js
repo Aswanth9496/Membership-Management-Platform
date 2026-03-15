@@ -1,5 +1,31 @@
 const User = require('../models/User');
+const ReferenceRequest = require('../models/ReferenceRequest');
 const ApiError = require('../utils/ApiError');
+
+// Helper to attach reference statuses to members
+const attachReferenceStatuses = async (members) => {
+  const memberIds = members.map(m => m._id || m.id);
+  const referenceRequests = await ReferenceRequest.find({ applicantId: { $in: memberIds } })
+    .populate('referencedMemberId', 'member.fullName email membershipNumber')
+    .lean();
+
+  return members.map(member => {
+    const memberId = (member._id || member.id).toString();
+    const requests = referenceRequests.filter(req => req.applicantId.toString() === memberId);
+    
+    return {
+      ...member,
+      referenceStatuses: requests.map(req => ({
+        id: req._id,
+        name: req.referencedMemberId?.member?.fullName || 'N/A',
+        email: req.referencedMemberId?.email || 'N/A',
+        membershipNumber: req.referencedMemberId?.membershipNumber || 'N/A',
+        status: req.status,
+        verifiedAt: req.verifiedAt
+      }))
+    };
+  });
+};
 
 // Get all members with comprehensive filtering and pagination
 const getAllMembers = async (options = {}) => {
@@ -54,8 +80,11 @@ const getAllMembers = async (options = {}) => {
     const totalMembers = await User.countDocuments(query);
     const totalPages = Math.ceil(totalMembers / limit);
 
+    // Attach reference statuses
+    const membersWithReferences = await attachReferenceStatuses(members);
+
     return {
-      members,
+      members: membersWithReferences,
       pagination: {
         currentPage: page,
         totalPages,
@@ -301,8 +330,11 @@ const getPendingApprovals = async (page = 1, limit = 10) => {
       hasPrevPage: page > 1,
     };
 
+    // Attach reference statuses
+    const membersWithReferences = await attachReferenceStatuses(formattedMembers);
+
     return {
-      members: formattedMembers,
+      members: membersWithReferences,
       pagination,
     };
   } catch (error) {
@@ -481,8 +513,11 @@ const getPendingApprovalsByRole = async (role, page = 1, limit = 10) => {
       hasPrevPage: page > 1,
     };
 
+    // Attach reference statuses
+    const membersWithReferences = await attachReferenceStatuses(formattedMembers);
+
     return {
-      members: formattedMembers,
+      members: membersWithReferences,
       pagination,
     };
   } catch (error) {
@@ -662,8 +697,11 @@ const getApprovedOrRejectedMembers = async (page = 1, limit = 10, filterStatus =
       hasPrevPage: page > 1,
     };
 
+    // Attach reference statuses
+    const membersWithReferences = await attachReferenceStatuses(formattedMembers);
+
     return {
-      members: formattedMembers,
+      members: membersWithReferences,
       pagination,
     };
   } catch (error) {

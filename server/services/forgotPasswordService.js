@@ -50,12 +50,14 @@ const requestPasswordResetOTP = async (email) => {
   await admin.save();
 
   // 7. Send OTP via email
+  console.log(`[Email Log] Sending Password Reset OTP to Admin: ${admin.email}`);
   const emailHtml = forgotPasswordTemplate(admin.fullName || 'User', otp);
-  await sendEmail({
+  const info = await sendEmail({
     to: admin.email,
     subject: '🔐 Password Reset OTP - TechFinit',
     html: emailHtml,
   });
+  console.log(`[Email Log] Admin OTP email sent successfully. MessageID: ${info.messageId}`);
 
   return {
     message: 'OTP sent successfully to your email',
