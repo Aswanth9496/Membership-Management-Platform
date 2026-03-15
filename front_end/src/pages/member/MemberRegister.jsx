@@ -32,7 +32,7 @@ const OFFICIAL_CLASSIFICATIONS = ['Proprietorship', 'Partnership', 'Private Limi
 
 const InputField = ({ label, name, type = "text", value, onChange, onBlur, placeholder, error, touched, required, ...props }) => (
   <div className="space-y-1">
-    <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">{label} {required && <span className="text-red-500">*</span>}</label>
+    <label className="text-gray-700 text-[10px] font-bold uppercase tracking-widest ml-1">{label} {required && <span className="text-red-500">*</span>}</label>
     {type === "textarea" ? (
       <textarea
         name={name}
@@ -40,7 +40,7 @@ const InputField = ({ label, name, type = "text", value, onChange, onBlur, place
         onChange={onChange}
         onBlur={onBlur}
         placeholder={placeholder}
-        className={`w-full bg-white/5 border ${error && touched ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-blue-500'} rounded-2xl px-5 py-3.5 text-white text-sm transition-all focus:bg-white/[0.08] outline-none`}
+        className={`w-full bg-white border ${error && touched ? 'border-red-500/50 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'} rounded-2xl px-5 py-3.5 text-gray-900 text-sm transition-all focus:bg-gray-50 outline-none`}
         {...props}
       />
     ) : (
@@ -51,12 +51,12 @@ const InputField = ({ label, name, type = "text", value, onChange, onBlur, place
         onChange={onChange}
         onBlur={onBlur}
         placeholder={placeholder}
-        className={`w-full bg-white/5 border ${error && touched ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-blue-500'} rounded-2xl px-5 py-3.5 text-white text-sm transition-all focus:bg-white/[0.08] outline-none`}
+        className={`w-full bg-white border ${error && touched ? 'border-red-500/50 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'} rounded-2xl px-5 py-3.5 text-gray-900 text-sm transition-all focus:bg-gray-50 outline-none`}
         {...props}
       />
     )}
     {error && touched && (
-      <p className="text-red-500 text-[9px] font-bold uppercase tracking-tighter ml-1 animate-fadeIn">{error}</p>
+      <p className="text-red-600 text-[9px] font-bold uppercase tracking-tighter ml-1 animate-fadeIn">{error}</p>
     )}
   </div>
 );
@@ -498,13 +498,13 @@ const MemberRegister = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="max-w-[440px] w-full bg-slate-900/40 border border-green-500/20 rounded-[40px] p-10 backdrop-blur-2xl text-center animate-fadeUp">
-          <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-6 text-green-500 shadow-lg shadow-green-500/20">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="max-w-[440px] w-full bg-white border border-green-500/20 rounded-[40px] p-10 backdrop-blur-2xl text-center animate-fadeUp">
+          <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-6 text-green-600 shadow-lg shadow-green-500/20">
             ✓
           </div>
-          <h2 className="text-xl font-bold text-white mb-3">Application Submitted!</h2>
-          <p className="text-slate-400 text-xs mb-8 leading-relaxed px-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-3">Application Submitted!</h2>
+          <p className="text-gray-600 text-xs mb-8 leading-relaxed px-4">
             Thank you for registering. Our team is now verifying your documents. We'll notify you via email once approved.
           </p>
           <Link to="/member/login" className="inline-block w-full bg-blue-600 text-white rounded-2xl py-4 font-bold text-sm tracking-wide transition-all hover:bg-blue-500 shadow-lg shadow-blue-600/20">
@@ -516,30 +516,30 @@ const MemberRegister = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center relative p-4 py-20 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center relative p-4 py-20 overflow-x-hidden">
       {/* Background Effects */}
-      <div className="fixed inset-0 bg-[radial-gradient(rgba(37,99,235,0.12)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
-      <div className="fixed w-[600px] h-[600px] -top-[100px] -right-[50px] rounded-full bg-blue-500/10 blur-[120px] animate-pulse pointer-events-none" />
-      <div className="fixed w-[500px] h-[500px] -bottom-[50px] -left-[100px] rounded-full bg-blue-900/20 blur-[120px] animate-pulse pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(rgba(240,241,242,0.92)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+      <div className="fixed w-[600px] h-[600px] -top-[100px] -right-[50px] rounded-full bg-blue-200/30 blur-[120px] animate-pulse pointer-events-none" />
+      <div className="fixed w-[500px] h-[500px] -bottom-[50px] -left-[100px] rounded-full bg-indigo-200/40 blur-[120px] animate-pulse pointer-events-none" />
 
       <div className="w-full max-w-[800px] animate-fadeUp z-10">
-        <div className="bg-slate-900/40 border border-white/5 rounded-[40px] p-8 md:p-12 backdrop-blur-2xl shadow-2xl relative overflow-hidden group">
+        <div className="bg-white border border-gray-200 rounded-[40px] p-8 md:p-12 backdrop-blur-2xl shadow-2xl relative overflow-hidden group">
 
           {/* Progress Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10 pb-10 border-b border-white/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10 pb-10 border-b border-gray-200">
             <div>
               <div className="flex items-center gap-3 mb-1">
                 <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-base shadow-lg shadow-blue-600/20">🤝</div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Member Registration</h1>
+                <h1 className="text-xl font-bold text-gray-900 tracking-tight">Member Registration</h1>
               </div>
-              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">Secure Enrollment Portal</p>
+              <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest ml-1">Secure Enrollment Portal</p>
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-2xl border border-white/5 self-start sm:self-center">
+            <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-2xl border border-gray-200 self-start sm:self-center">
               {[1, 2, 3, 4].map(num => (
                 <div
                   key={num}
-                  className={`flex items-center justify-center w-7 h-7 rounded-xl text-[9px] font-black transition-all duration-500 ${step >= num ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-600'}`}
+                  className={`flex items-center justify-center w-7 h-7 rounded-xl text-[9px] font-black transition-all duration-500 ${step >= num ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-gray-200 text-gray-600'}`}
                 >
                   {step > num ? '✓' : num}
                 </div>
@@ -548,7 +548,7 @@ const MemberRegister = () => {
           </div>
 
           {error && (
-            <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs text-center font-bold animate-shake uppercase tracking-wider">
+            <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs text-center font-bold animate-shake uppercase tracking-wider">
               {error}
             </div>
           )}
@@ -563,7 +563,7 @@ const MemberRegister = () => {
               <div className="space-y-10 animate-fadeIn">
                 {/* Personal & Contact Section */}
                 <div className="space-y-6">
-                  <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Personal & Contact Details</h3>
+                  <h3 className="text-blue-600 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Personal & Contact Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                     <InputField
                       label="Full Name"
@@ -622,14 +622,14 @@ const MemberRegister = () => {
                       placeholder="0484-2345678"
                     />
                     <div className="space-y-1">
-                      <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Office Type <span className="text-red-500">*</span></label>
-                      <select name="member.officeType" value={formData.member.officeType} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-3.5 text-white text-sm focus:border-blue-500 outline-none">
+                      <label className="text-gray-700 text-[10px] font-bold uppercase tracking-widest ml-1">Office Type <span className="text-red-500">*</span></label>
+                      <select name="member.officeType" value={formData.member.officeType} onChange={handleChange} className="w-full bg-white border border-gray-300 rounded-2xl px-5 py-3.5 text-gray-900 text-sm focus:border-blue-500 outline-none">
                         {OFFICE_TYPES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Role in Agency <span className="text-red-500">*</span></label>
-                      <select name="member.roleInAgency" value={formData.member.roleInAgency} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-3.5 text-white text-sm focus:border-blue-500 outline-none">
+                      <label className="text-gray-700 text-[10px] font-bold uppercase tracking-widest ml-1">Role in Agency <span className="text-red-500">*</span></label>
+                      <select name="member.roleInAgency" value={formData.member.roleInAgency} onChange={handleChange} className="w-full bg-white border border-gray-300 rounded-2xl px-5 py-3.5 text-gray-900 text-sm focus:border-blue-500 outline-none">
                         {ROLES_IN_AGENCY.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     </div>
@@ -637,8 +637,8 @@ const MemberRegister = () => {
                 </div>
 
                 {/* Account Security Section */}
-                <div className="space-y-6 border-t border-white/5 pt-10">
-                  <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Account Security</h3>
+                <div className="space-y-6 border-t border-gray-200 pt-10">
+                  <h3 className="text-blue-600 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Account Security</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                     <InputField
                       label="Password"
@@ -673,7 +673,7 @@ const MemberRegister = () => {
             {step === 2 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 animate-fadeIn">
                 <div className="space-y-5">
-                  <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Business Identity</h3>
+                  <h3 className="text-blue-600 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Business Identity</h3>
                   <InputField
                     label="Establishment Name"
                     name="establishment.name"
@@ -710,15 +710,15 @@ const MemberRegister = () => {
                       placeholder="2020"
                     />
                     <div className="space-y-1">
-                      <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Business Type</label>
-                      <select name="establishment.businessType" value={formData.establishment.businessType} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-3.5 text-white text-sm focus:border-blue-500 outline-none">
+                      <label className="text-gray-700 text-[10px] font-bold uppercase tracking-widest ml-1">Business Type</label>
+                      <select name="establishment.businessType" value={formData.establishment.businessType} onChange={handleChange} className="w-full bg-white border border-gray-300 rounded-2xl px-5 py-3.5 text-gray-900 text-sm focus:border-blue-500 outline-none">
                         {BUSINESS_TYPES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Official Classification <span className="text-red-500">*</span></label>
-                    <select name="establishment.officialClassification" value={formData.establishment.officialClassification} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-3.5 text-white text-sm focus:border-blue-500 outline-none">
+                    <label className="text-gray-700 text-[10px] font-bold uppercase tracking-widest ml-1">Official Classification <span className="text-red-500">*</span></label>
+                    <select name="establishment.officialClassification" value={formData.establishment.officialClassification} onChange={handleChange} className="w-full bg-white border border-gray-300 rounded-2xl px-5 py-3.5 text-gray-900 text-sm focus:border-blue-500 outline-none">
                       {OFFICIAL_CLASSIFICATIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
@@ -738,7 +738,7 @@ const MemberRegister = () => {
                 </div>
 
                 <div className="space-y-5">
-                  <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Official Contact</h3>
+                  <h3 className="text-blue-600 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Official Contact</h3>
                   <InputField
                     label="Official Email"
                     name="establishment.officialEmail"
@@ -933,18 +933,18 @@ const MemberRegister = () => {
                 <div className="space-y-6">
                   <div className="flex items-center gap-3 mb-2 px-1">
                     <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
-                    <h2 className="text-white text-sm font-bold uppercase tracking-widest">Verification Documents</h2>
+                    <h2 className="text-gray-900 text-sm font-bold uppercase tracking-widest">Verification Documents</h2>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {Object.keys(files).map((key) => (
                       <div key={key} className="space-y-4">
-                        <div className={`bg-slate-800/10 border ${errors[key] && touched[key] ? 'border-red-500/50' : 'border-white/5'} rounded-3xl p-6 transition-all hover:bg-slate-800/20 hover:border-blue-500/30 group relative min-h-[140px] flex items-center justify-center`}>
+                        <div className={`bg-white border ${errors[key] && touched[key] ? 'border-red-500/50' : 'border-gray-300'} rounded-3xl p-6 transition-all hover:bg-gray-50 hover:border-blue-500/30 group relative min-h-[140px] flex items-center justify-center shadow-sm`}>
                           <div className="text-center group-hover:scale-105 transition-transform duration-500">
                             <div className="text-xl mb-2">
                               {key === 'agencyLogo' ? '🖼️' : key === 'memberPhoto' ? '👤' : '📄'}
                             </div>
-                            <p className="text-white text-[10px] font-bold uppercase tracking-widest mb-1 pointer-events-none">
+                            <p className="text-gray-900 text-[10px] font-bold uppercase tracking-widest mb-1 pointer-events-none">
                               {key === 'agencyAddressProof' && 'Agency Address Proof'}
                               {key === 'activityLicense' && 'Activity License'}
                               {key === 'shopPhoto' && 'Shop Photo'}
@@ -953,7 +953,7 @@ const MemberRegister = () => {
                               {key === 'memberPhoto' && 'Main Member Photo'}
                               {key === 'additionalDoc' && 'Additional Document'}
                             </p>
-                            <p className="text-slate-500 text-[8px] uppercase tracking-tighter pointer-events-none">
+                            <p className="text-gray-500 text-[8px] uppercase tracking-tighter pointer-events-none">
                               {key === 'shopPhoto' ? 'Visible Name Board & Open Sign' : 'JPG, PNG or PDF • 5MB'}
                             </p>
                           </div>
@@ -965,16 +965,16 @@ const MemberRegister = () => {
                             accept=".jpg,.jpeg,.png,.pdf"
                           />
                           {files[key] ? (
-                            <div className="absolute top-2 right-2 flex items-center gap-1.5 text-blue-400 text-[8px] font-bold uppercase bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 animate-scaleIn">
+                            <div className="absolute top-2 right-2 flex items-center gap-1.5 text-blue-600 text-[8px] font-bold uppercase bg-blue-50 px-2 py-1 rounded-lg border border-blue-200 animate-scaleIn">
                               <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                               {files[key].name.length > 15 ? files[key].name.substring(0, 15) + '...' : files[key].name}
                             </div>
                           ) : errors[key] && touched[key] ? (
-                            <div className="absolute top-2 right-2 flex items-center gap-1.5 text-red-500 text-[8px] font-bold uppercase bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 animate-scaleIn">
+                            <div className="absolute top-2 right-2 flex items-center gap-1.5 text-red-600 text-[8px] font-bold uppercase bg-red-50 px-2 py-1 rounded-lg border border-red-200 animate-scaleIn">
                               Required
                             </div>
                           ) : key === 'additionalDoc' && (
-                            <div className="absolute top-2 right-2 flex items-center gap-1.5 text-slate-500 text-[8px] font-bold uppercase bg-slate-500/5 px-2 py-1 rounded-lg border border-white/5">
+                            <div className="absolute top-2 right-2 flex items-center gap-1.5 text-gray-500 text-[8px] font-bold uppercase bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
                               Optional
                             </div>
                           )}
@@ -985,16 +985,16 @@ const MemberRegister = () => {
                 </div>
 
                 {/* Reference Section */}
-                <div className="space-y-6 pt-10 border-t border-white/5 relative">
+                <div className="space-y-6 pt-10 border-t border-gray-200 relative">
                   <div className="flex items-center justify-between mb-2 px-1">
                     <div className="flex items-center gap-3">
                       <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
-                      <h2 className="text-white text-sm font-bold uppercase tracking-widest">Member References <span className="text-red-500">*</span></h2>
+                      <h2 className="text-gray-900 text-sm font-bold uppercase tracking-widest">Member References <span className="text-red-500">*</span></h2>
                     </div>
                     <span className={`px-2.5 py-1.5 rounded-xl border text-[9px] font-bold uppercase transition-all ${
                       errors['references'] && touched['references'] 
-                      ? 'bg-red-500/10 border-red-500/30 text-red-400' 
-                      : 'bg-white/5 border-white/5 text-slate-500'
+                      ? 'bg-red-50 border-red-200 text-red-600' 
+                      : 'bg-gray-50 border-gray-200 text-gray-600'
                     }`}>
                       {formData.references.length === 0 ? 'Verification Required' : `${formData.references.length} Reference(s) Added`}
                     </span>
@@ -1004,22 +1004,22 @@ const MemberRegister = () => {
                     <div ref={searchContainerRef} className="relative group">
                       {/* Search Bar with Chips */}
                       <div
-                        className={`min-h-[64px] bg-white/5 border ${formData.references.length >= 2 ? 'border-white/5 opacity-60 cursor-not-allowed' : 'border-white/10 focus-within:border-blue-500/50 hover:border-white/20'} rounded-[24px] px-4 py-3 transition-all flex flex-wrap gap-2 items-center`}
+                        className={`min-h-[64px] bg-white border ${formData.references.length >= 2 ? 'border-gray-200 opacity-60 cursor-not-allowed' : 'border-gray-300 focus-within:border-blue-500 hover:border-gray-400'} rounded-[24px] px-4 py-3 transition-all flex flex-wrap gap-2 items-center shadow-sm`}
                         onClick={() => formData.references.length < 2 && setShowRefDropdown(true)}
                       >
-                        <span className="text-slate-500 ml-2">🔍</span>
+                        <span className="text-gray-400 ml-2">🔍</span>
 
                         {/* Selected Chips inside search bar area */}
                         {formData.references.map((ref) => (
-                          <div key={ref._id} className="bg-blue-600/20 border border-blue-500/30 rounded-xl pl-3 pr-2 py-1.5 flex items-center gap-2 group/chip animate-scaleIn">
-                            <span className="text-white text-[10px] font-bold uppercase tracking-tight">{ref.name}</span>
+                          <div key={ref._id} className="bg-blue-50 border border-blue-200 rounded-xl pl-3 pr-2 py-1.5 flex items-center gap-2 group/chip animate-scaleIn">
+                            <span className="text-gray-900 text-[10px] font-bold uppercase tracking-tight">{ref.name}</span>
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 removeReference(ref._id);
                               }}
-                              className="w-5 h-5 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all transform active:scale-90"
+                              className="w-5 h-5 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-all transform active:scale-90"
                             >
                               ✕
                             </button>
@@ -1036,58 +1036,58 @@ const MemberRegister = () => {
                               setShowRefDropdown(true);
                             }}
                             onFocus={() => setShowRefDropdown(true)}
-                            className="flex-1 bg-transparent border-none text-white text-sm focus:ring-0 outline-none min-w-[200px] h-full"
+                            className="flex-1 bg-transparent border-none text-gray-900 text-sm focus:ring-0 outline-none min-w-[200px] h-full placeholder-gray-400"
                           />
                         )}
 
                         {formData.references.length >= 2 && (
-                          <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-2 italic">
+                          <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest ml-2 italic">
                             Maximum references reached
                           </span>
                         )}
 
                         {isSearching && (
                           <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                            <div className="w-5 h-5 border-2 border-white/10 border-t-blue-500 rounded-full animate-spin"></div>
+                            <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
                           </div>
                         )}
                       </div>
 
                       {/* Google-style Prediction Dropdown */}
                       {showRefDropdown && (refSearch.length >= 2 || (refResults.length > 0 && !refSearch)) && (
-                        <div className="absolute z-50 top-full mt-3 w-full bg-[#0f172a] border border-white/10 rounded-[28px] shadow-2xl overflow-hidden animate-scaleIn origin-top-center p-2 backdrop-blur-xl">
+                        <div className="absolute z-50 top-full mt-3 w-full bg-white border border-gray-500 rounded-[28px] shadow-xl overflow-hidden animate-scaleIn origin-top-center p-2">
                           {refResults.length > 0 ? (
                             <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
-                              <p className="text-slate-500 text-[9px] font-bold uppercase tracking-[0.2em] px-5 py-3 border-b border-white/5">Suggested Partners</p>
+                              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-[0.2em] px-5 py-3 border-b border-gray-200">Suggested Partners</p>
                               {refResults.map((member) => (
                                 <button
                                   key={member._id}
                                   type="button"
                                   onClick={() => addReference(member)}
-                                  className="w-full text-left px-5 py-4 hover:bg-blue-600/10 rounded-2xl transition-all border-b border-white/5 last:border-0 flex items-center justify-between group"
+                                  className="w-full text-left px-5 py-4 hover:bg-blue-50 rounded-2xl transition-all border-b border-gray-100 last:border-0 flex items-center justify-between group"
                                 >
                                   <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center text-lg group-hover:bg-blue-600/20 group-hover:scale-110 transition-all duration-300">
+                                    <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center text-lg group-hover:bg-blue-100 group-hover:scale-110 transition-all duration-300">
                                       👤
                                     </div>
                                     <div>
-                                      <p className="text-white text-xs font-bold mb-0.5 group-hover:text-blue-400 transition-colors uppercase tracking-wide">
+                                      <p className="text-gray-900 text-xs font-bold mb-0.5 group-hover:text-blue-600 transition-colors uppercase tracking-wide">
                                         {member.member?.fullName || member.name}
                                       </p>
-                                      <p className="text-slate-400 text-[9px] uppercase tracking-tighter flex flex-wrap items-center gap-x-2 gap-y-1">
-                                        <span className="text-blue-500/80 font-bold">{member.establishment?.name || member.company}</span>
-                                        <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+                                      <p className="text-gray-500 text-[9px] uppercase tracking-tighter flex flex-wrap items-center gap-x-2 gap-y-1">
+                                        <span className="text-blue-600 font-bold">{member.establishment?.name || member.company}</span>
+                                        <span className="w-1 h-1 rounded-full bg-gray-300"></span>
                                         <span>{member.membershipNumber}</span>
                                         {member.email && (
                                           <>
-                                            <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-                                            <span className="opacity-60 lowercase">{member.email}</span>
+                                            <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                                            <span className="text-gray-400 lowercase">{member.email}</span>
                                           </>
                                         )}
                                       </p>
                                     </div>
                                   </div>
-                                  <div className="w-8 h-8 rounded-xl bg-blue-600/10 text-blue-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all">
+                                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all">
                                     ➕
                                   </div>
                                 </button>
@@ -1096,29 +1096,29 @@ const MemberRegister = () => {
                           ) : refSearch.length >= 2 ? (
                             <div className="p-8 text-center">
                               <div className="text-2xl mb-2 opacity-20">🔍</div>
-                              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">No members found matching "{refSearch}"</p>
+                              <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">No members found matching "{refSearch}"</p>
                             </div>
                           ) : (
                             <div className="p-6 text-center">
-                              <p className="text-slate-600 text-[9px] font-bold uppercase tracking-widest">Type to search existing members</p>
+                              <p className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Type to search existing members</p>
                             </div>
                           )}
                         </div>
                       )}
                       
                       {errors['references'] && touched['references'] && (
-                        <p className="absolute -bottom-6 left-4 text-red-500 text-[9px] font-bold uppercase tracking-tighter animate-fadeIn">
+                        <p className="absolute -bottom-6 left-4 text-red-600 text-[9px] font-bold uppercase tracking-tighter animate-fadeIn">
                           {errors['references']}
                         </p>
                       )}
                     </div>
 
                     <div className="flex flex-wrap gap-4 mt-2 px-1">
-                      <div className="flex items-center gap-2 text-slate-500 text-[9px] font-medium uppercase tracking-widest opacity-70">
+                      <div className="flex items-center gap-2 text-gray-500 text-[9px] font-medium uppercase tracking-widest opacity-70">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                         Trusted Network
                       </div>
-                      <div className="flex items-center gap-2 text-slate-500 text-[9px] font-medium uppercase tracking-widest opacity-70">
+                      <div className="flex items-center gap-2 text-gray-500 text-[9px] font-medium uppercase tracking-widest opacity-70">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                         Real-time verification
                       </div>
@@ -1126,8 +1126,8 @@ const MemberRegister = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center p-6 bg-blue-600/5 rounded-[32px] border border-blue-500/10">
-                  <p className="text-slate-400 text-[10px] font-medium text-center leading-relaxed">
+                <div className="flex items-center justify-center p-6 bg-blue-50 rounded-[32px] border border-blue-200">
+                  <p className="text-gray-600 text-[10px] font-medium text-center leading-relaxed">
                     By submitting this application, you certify that all information provided is accurate and all documents uploaded are genuine business records.
                   </p>
                 </div>
@@ -1135,37 +1135,34 @@ const MemberRegister = () => {
             )}
 
             {/* Actions */}
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-6 pt-10 border-t border-white/5">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-6 pt-10 border-t border-gray-200">
               {step > 1 ? (
-                <button type="button" onClick={prevStep} className="w-full sm:w-auto text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] hover:text-white transition-colors py-4">
+                <button type="button" onClick={prevStep} className="w-full sm:w-auto text-gray-600 text-[10px] font-bold uppercase tracking-[0.2em] hover:text-gray-900 transition-colors py-4">
                   ← Previous Step
                 </button>
               ) : (
-                <Link to="/member/login" className="text-slate-500 text-[10px] font-bold uppercase tracking-widest hover:text-blue-400 transition-colors">
-                  Already a member? Sign In
+                <Link to="/" className="w-full sm:w-auto text-gray-600 text-[10px] font-bold uppercase tracking-[0.2em] hover:text-gray-900 transition-colors py-4">
+                  ← Back to Home
                 </Link>
               )}
 
-              <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className="flex items-center gap-4">
                 {step < 4 ? (
                   <button
-                    key="btn-next"
                     type="button"
                     onClick={nextStep}
-                    className="w-full sm:w-auto bg-blue-600 text-white rounded-2xl px-10 py-4 font-bold text-xs tracking-[0.1em] uppercase transition-all hover:bg-blue-500 hover:-translate-y-0.5 shadow-lg shadow-blue-600/20"
+                    disabled={loading}
+                    className="px-12 py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm tracking-wide transition-all hover:bg-blue-500 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20"
                   >
-                    Continue →
+                    {loading ? 'Processing...' : `Next Step →`}
                   </button>
                 ) : (
                   <button
-                    key="btn-submit"
                     type="submit"
                     disabled={loading}
-                    className="w-full sm:w-auto bg-blue-600 text-white rounded-2xl px-12 py-4 font-bold text-xs tracking-[0.1em] uppercase shadow-xl shadow-blue-600/20 disabled:opacity-50 flex items-center justify-center gap-3 transition-all hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0"
+                    className="px-12 py-4 bg-green-600 text-white rounded-2xl font-bold text-sm tracking-wide transition-all hover:bg-green-500 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-600/20"
                   >
-                    {loading ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : 'Submit Application'}
+                    {loading ? 'Submitting...' : 'Submit Application'}
                   </button>
                 )}
               </div>

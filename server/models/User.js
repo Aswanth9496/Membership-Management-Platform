@@ -59,7 +59,7 @@ const userSchema = new mongoose.Schema(
       },
       businessTypeDescription: {
         type: String,
-        required: [function() { return this.establishment.businessType === 'Other'; }, 'Please describe your business type'],
+        required: [function () { return this.establishment.businessType === 'Other'; }, 'Please describe your business type'],
         trim: true,
       },
       organizationalStatus: {
@@ -226,7 +226,7 @@ const userSchema = new mongoose.Schema(
     // STATUS & WORKFLOW
     status: {
       type: String,
-      enum: ['submitted', 'verified', 'payment_completed','approved','rejected','change_requested'],
+      enum: ['submitted', 'verified', 'payment_completed', 'approved', 'rejected', 'change_requested'],
       default: 'submitted',
     },
     rejectionReason: {
@@ -422,7 +422,7 @@ userSchema.index({ status: 1 });
 // Hash password before saving
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
-  
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });

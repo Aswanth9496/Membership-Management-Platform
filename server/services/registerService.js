@@ -87,7 +87,7 @@ const buildUserData = (body) => {
       'memberPhoto',
       'additionalDoc'
     ];
-    
+
     docFields.forEach(field => {
       if (documents[field]) {
         userData.documents[field] = {
