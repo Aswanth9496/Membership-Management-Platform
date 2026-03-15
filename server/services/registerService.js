@@ -41,6 +41,7 @@ const buildUserData = (body) => {
       gstNumber: establishment.gstNumber || undefined,
     },
     location: {
+      state: location?.state,
       district: location?.district,
       region: location?.region,
       city: location?.city,
@@ -106,6 +107,7 @@ const handleReferral = async (userData, referralCode) => {
     const referrer = await findReferrer(referralCode);
     if (referrer) {
       userData.referral = {
+        ...userData.referral,
         referredBy: referrer._id,
       };
       return referrer;
@@ -167,8 +169,13 @@ const registerUser = async (body) => {
 
   // Trigger reference verification workflow
   if (user.referral?.references?.length > 0) {
+    console.log(`Triggering reference requests for user ${user._id}. References: ${user.referral.references.length}`);
     // We don't await this to keep registration fast, or we can await it if we want to ensure emails sent
-    createReferenceRequests(user._id, user.referral.references).catch(console.error);
+    createReferenceRequests(user._id, user.referral.references).catch(err => {
+      console.error('CRITICAL: Reference request creation failed:', err);
+    });
+  } else {
+    console.log(`No references found for user ${user._id}`);
   }
 
   return user;

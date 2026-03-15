@@ -40,9 +40,8 @@ const register = async (req, res) => {
 
   console.log('--- Register Request ---');
   console.log('Body Keys:', Object.keys(req.body));
-  console.log('Establishment:', req.body.establishment);
-  console.log('Location:', req.body.location);
-  console.log('Member:', req.body.member);
+  console.log('References (raw):', req.body.references);
+  console.log('Referral:', JSON.stringify(req.body.referral, null, 2));
   console.log('Files:', req.files ? Object.keys(req.files) : 'None');
 
   const user = await registerUser(req.body);
@@ -64,7 +63,9 @@ const getApprovedMembers = async (req, res) => {
     query.$or = [
       { 'member.fullName': { $regex: search, $options: 'i' } },
       { 'establishment.name': { $regex: search, $options: 'i' } },
-      { membershipNumber: { $regex: search, $options: 'i' } }
+      { membershipNumber: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+      { 'member.mobile': { $regex: search, $options: 'i' } }
     ];
   }
 

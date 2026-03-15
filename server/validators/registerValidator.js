@@ -23,10 +23,11 @@ exports.registerValidationRules = [
     }
     return true;
   }),
+  body('location.state').trim().notEmpty().withMessage('State is required'),
   body('location.district').trim().notEmpty().withMessage('District is required'),
   body('location.region').trim().notEmpty().withMessage('Region is required'),
   body('location.city').trim().notEmpty().withMessage('City is required'),
-  body('location.pinCode').trim().notEmpty().withMessage('Pin code is required').matches(/^6\d{5}$/).withMessage('Pin code must be 6 digits starting with 6'),
+  body('location.pinCode').trim().notEmpty().withMessage('Pin code is required').matches(/^\d{6}$/).withMessage('Pin code must be 6 digits'),
   body('location.registeredAddress').trim().notEmpty().withMessage('Registered address is required'),
   body('location.isSameAddress').optional().customSanitizer(value => value === 'true' || value === true),
   body('location.communicationAddress').custom((value, { req }) => {

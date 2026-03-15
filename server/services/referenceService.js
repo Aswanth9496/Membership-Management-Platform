@@ -23,7 +23,17 @@ const createReferenceRequests = async (applicantId, referenceIds) => {
       const referencedMember = await User.findById(refId);
       if (!referencedMember) continue;
 
-      // Create request in DB
+      // Prevent self-referencing
+      if (applicantId.toString() === refId.toString()) {
+        console.warn(`Self-referencing detected for applicant ${applicantId}. Skipping.`);
+        continue;
+      }
+
+      // Check if request already exists (due to unique index, but good to handle)
+      const existing = await ReferenceRequest.findOne({ applicantId, referencedMemberId: refId });
+      if (existing) continue;
+
+      console.log(`Creating ReferenceRequest for applicant ${applicantId} -> ref ${refId}`);
       await ReferenceRequest.create({
         applicantId,
         referencedMemberId: refId,
@@ -42,11 +52,23 @@ const createReferenceRequests = async (applicantId, referenceIds) => {
         subject: '📝 Reference Request Confirmation - techfinit',
         html: emailHtml,
       });
+      console.log(`Successfully sent reference request email to ${referencedMember.email}`);
     } catch (error) {
-      console.error(`Failed to create reference request for ${refId}:`, error.message);
-      // Continue with other references even if one fails
+      console.error(`ERROR in createReferenceRequests for ref ${refId}:`, error);
     }
   }
+};
+
+/**
+ * Get all reference requests for a specific member (pending and history)
+ * @param {string} memberId 
+ */
+const getAllRequestsForMember = async (memberId) => {
+  return await ReferenceRequest.find({
+    referencedMemberId: memberId
+  })
+  .populate('applicantId', 'member.fullName establishment.name email createdAt')
+  .sort({ createdAt: -1 });
 };
 
 /**
@@ -58,7 +80,7 @@ const getPendingRequestsForMember = async (memberId) => {
     referencedMemberId: memberId,
     status: 'pending'
   })
-  .populate('applicantId', 'member.fullName establishment.name createdAt')
+  .populate('applicantId', 'member.fullName establishment.name email createdAt')
   .sort({ createdAt: -1 });
 };
 
@@ -90,6 +112,18 @@ const updateRequestStatus = async (requestId, memberId, status) => {
 };
 
 /**
+ * Get all reference requests submitted by a specific applicant
+ * @param {string} applicantId 
+ */
+const getRequestsByApplicant = async (applicantId) => {
+  return await ReferenceRequest.find({
+    applicantId
+  })
+  .populate('referencedMemberId', 'member.fullName establishment.name membershipNumber email')
+  .sort({ createdAt: -1 });
+};
+
+/**
  * Get all reference requests for Admin Panel
  */
 const getAllRequestsForAdmin = async () => {
@@ -101,7 +135,9 @@ const getAllRequestsForAdmin = async () => {
 
 module.exports = {
   createReferenceRequests,
+  getAllRequestsForMember,
   getPendingRequestsForMember,
   updateRequestStatus,
+  getRequestsByApplicant,
   getAllRequestsForAdmin
 };

@@ -62,7 +62,10 @@ const loginMember = async (email, password) => {
 // Get Member Profile
 const getMemberProfile = async (memberId) => {
   try {
-    const member = await User.findById(memberId).select('-password').lean();
+    const member = await User.findById(memberId)
+      .select('-password')
+      .populate('referral.references', 'member.fullName establishment.name email membershipNumber')
+      .lean();
 
     if (!member) {
       throw new ApiError(404, 'Member not found');

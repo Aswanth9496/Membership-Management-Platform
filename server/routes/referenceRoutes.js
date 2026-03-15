@@ -5,7 +5,9 @@ const { authenticateMember, authenticateAdmin, authorizeRoles } = require('../mi
 const asyncHandler = require('../middlewares/asyncHandler');
 
 // Member routes (Protected)
+router.get('/all', authenticateMember, asyncHandler(referenceController.getAllMyReferences));
 router.get('/my-requests', authenticateMember, asyncHandler(referenceController.getMyReferenceRequests));
+router.get('/my-submissions', authenticateMember, asyncHandler(referenceController.getMyApplicantRequests));
 router.patch('/:requestId/confirm', authenticateMember, asyncHandler(referenceController.confirmReference));
 router.patch('/:requestId/reject', authenticateMember, asyncHandler(referenceController.rejectReference));
 

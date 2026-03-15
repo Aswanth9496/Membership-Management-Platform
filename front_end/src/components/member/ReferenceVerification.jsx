@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { memberEndpoints } from '../../data/member'
 
-const ReferenceVerification = () => {
+const ReferenceVerification = ({ hideIfEmpty = true }) => {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState(null)
@@ -42,7 +42,19 @@ const ReferenceVerification = () => {
   }
 
   if (loading) return null // Hide if loading
-  if (requests.length === 0) return null // Hide if no pending requests
+  if (requests.length === 0 && hideIfEmpty) return null // Hide if no pending requests and hideIfEmpty is true
+
+  if (requests.length === 0 && !hideIfEmpty) {
+    return (
+      <div className="bg-slate-50 border border-slate-100 rounded-3xl p-12 text-center animate-fadeUp">
+        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-2xl mx-auto mb-4">
+          ✨
+        </div>
+        <h4 className="font-bold text-slate-800 mb-1 leading-none uppercase text-xs tracking-widest">No Incoming Requests</h4>
+        <p className="text-[10px] text-slate-400 font-medium">You don't have any pending reference verification requests at the moment.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-orange-50/50 border border-orange-100 rounded-3xl p-6 sm:p-8 animate-fadeUp">

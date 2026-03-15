@@ -58,7 +58,9 @@ export const memberEndpoints = {
 
   // 📝 Reference Verification (use api - with credentials)
   references: {
+    getAll: () => api.get('/api/references/all'),
     getMyRequests: () => api.get('/api/references/my-requests'),
+    getMySubmissions: () => api.get('/api/references/my-submissions'),
     confirm: (requestId, remarks) => api.patch(`/api/references/${requestId}/confirm`, { remarks }),
     reject: (requestId, remarks) => api.patch(`/api/references/${requestId}/reject`, { remarks }),
   },

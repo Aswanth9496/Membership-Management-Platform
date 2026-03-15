@@ -28,7 +28,7 @@ const MemberSidebar = ({ isOpen, setIsOpen }) => {
       items: [
         { icon: '📅', label: 'Events', path: '/member/events' },
        // { icon: '📢', label: 'Notices', path: '/member/notices', badge: 2 },
-        { icon: '🤝', label: 'Referral', path: '/member/referral' },
+        { icon: '🤝', label: 'References', path: '/member/references' },
       ]
     }
   ]

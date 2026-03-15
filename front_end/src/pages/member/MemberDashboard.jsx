@@ -1,5 +1,4 @@
 import { useSelector } from 'react-redux'
-import ReferenceVerification from '../../components/member/ReferenceVerification'
 
 const MemberDashboard = () => {
   const { user } = useSelector(state => state.auth.member || {})
@@ -52,9 +51,6 @@ const MemberDashboard = () => {
           Annual General Meet 2025 <span className="font-bold">registration is open</span>. Seats filling fast — only 23 left! <a href="#" className="font-bold underline">Register Now →</a>
         </p>
       </div>
-
-      {/* Reference Verification Requests (Conditional) */}
-      <ReferenceVerification />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
