@@ -2,7 +2,7 @@ import { useSelector } from 'react-redux'
 import ReferenceVerification from '../../components/member/ReferenceVerification'
 
 const MemberDashboard = () => {
-  const { user } = useSelector(state => state.auth.member)
+  const { user } = useSelector(state => state.auth.member || {})
 
   const stats = [
     { label: 'Membership Year', value: '2025', subValue: 'Renewed Apr 1, 2025' },

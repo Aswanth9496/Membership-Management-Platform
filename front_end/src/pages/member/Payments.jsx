@@ -1,62 +1,43 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { memberEndpoints } from '../../data/member'
 
 const Payments = () => {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('all')
+  const [payments, setPayments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
 
-  // Dummy payment data
-  const payments = [
-    { 
-      id: 'PAY-88291', 
-      description: 'Annual Membership Renewal 2025', 
-      amount: 15000, 
-      date: '2025-01-15', 
-      status: 'completed',
-      method: 'Razorpay - UPI',
-      category: 'membership'
-    },
-    { 
-      id: 'PAY-77310', 
-      description: 'Event Registration: Annual Travel Expo', 
-      amount: 2500, 
-      date: '2024-11-20', 
-      status: 'completed',
-      method: 'Razorpay - Card',
-      category: 'event'
-    },
-    { 
-      id: 'PAY-66421', 
-      description: 'Directory Listing Fee', 
-      amount: 1200, 
-      date: '2024-09-05', 
-      status: 'completed',
-      method: 'Bank Transfer',
-      category: 'other'
-    },
-    { 
-      id: 'PAY-55102', 
-      description: 'Event Registration: Networking Dinner', 
-      amount: 1800, 
-      date: '2024-12-10', 
-      status: 'failed',
-      method: 'Razorpay - UPI',
-      category: 'event'
-    },
-    { 
-      id: 'PAY-44391', 
-      description: 'Certificate Issuance Fee', 
-      amount: 500, 
-      date: '2025-02-10', 
-      status: 'pending',
-      method: 'Razorpay - QR',
-      category: 'other'
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        setLoading(true)
+        const response = await memberEndpoints.payments.getTransactions()
+        if (response && response.success) {
+          setPayments(response.data || [])
+        }
+      } catch (err) {
+        console.error('Error fetching payments:', err)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+    fetchPayments()
+  }, [])
 
-  const filteredPayments = activeTab === 'all' 
-    ? payments 
-    : payments.filter(p => p.status === activeTab)
+  const filteredPayments = payments.filter(p => {
+    const matchesTab = activeTab === 'all' || (p.status || '').toLowerCase() === activeTab.toLowerCase()
+    const matchesSearch = 
+      (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase())) || 
+      (p.transactionId && p.transactionId.toLowerCase().includes(searchTerm.toLowerCase()))
+      
+    return matchesTab && matchesSearch
+  })
+
+  // Calculate stats dynamically
+  const totalSpent = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.amount || 0), 0)
+  const lastPayment = payments.find(p => p.status === 'completed')
 
   const StatCard = ({ label, value, icon, color }) => (
     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-100 transition-colors">
@@ -98,10 +79,9 @@ const Payments = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard label="Total Spent" value="₹21,000" icon="💰" color="bg-blue-50 text-blue-600" />
-        <StatCard label="Last Payment" value="₹500" icon="🗓️" color="bg-indigo-50 text-indigo-600" />
-        <StatCard label="Pending Due" value="₹0" icon="🕒" color="bg-amber-50 text-amber-600" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <StatCard label="Total Spent" value={`₹${totalSpent.toLocaleString()}`} icon="💰" color="bg-blue-50 text-blue-600" />
+        <StatCard label="Last Payment" value={lastPayment ? `₹${lastPayment.amount.toLocaleString()}` : 'None'} icon="🗓️" color="bg-indigo-50 text-indigo-600" />
       </div>
 
       {/* Main Content */}
@@ -109,7 +89,7 @@ const Payments = () => {
         {/* Table Controls */}
         <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100 w-fit">
-            {['all', 'completed', 'pending', 'failed'].map(tab => (
+            {['all', 'completed', 'failed'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -129,6 +109,8 @@ const Payments = () => {
             <input 
               type="text" 
               placeholder="Search transactions..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="bg-slate-50 border border-slate-100 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-600 outline-none focus:border-blue-200 transition-all w-full md:w-64"
             />
           </div>
@@ -148,29 +130,38 @@ const Payments = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-xs">
-              {filteredPayments.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50/30 transition-colors group">
-                  <td className="px-6 py-4 font-bold text-slate-500">{new Date(p.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                  <td className="px-6 py-4">
-                    <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-mono text-slate-600">{p.id}</span>
-                  </td>
-                  <td className="px-6 py-4 font-bold text-slate-700">{p.description}</td>
-                  <td className="px-6 py-4 font-black text-slate-800">₹{p.amount.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-center">
-                    <StatusBadge status={p.status} />
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-800 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Invoice
-                    </button>
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-12 text-center">
+                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Loading Transactions...</p>
                   </td>
                 </tr>
-              ))}
+              ) : filteredPayments.length > 0 ? (
+                filteredPayments.map((p) => (
+                  <tr key={p.id || p._id} className="hover:bg-slate-50/30 transition-colors group">
+                    <td className="px-6 py-4 font-bold text-slate-500">{new Date(p.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td className="px-6 py-4">
+                      <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-mono text-slate-600">{p.transactionId}</span>
+                    </td>
+                    <td className="px-6 py-4 font-bold text-slate-700">{p.description}</td>
+                    <td className="px-6 py-4 font-black text-slate-800">₹{p.amount?.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-center">
+                      <StatusBadge status={p.status} />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-800 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Receipt
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : null}
             </tbody>
           </table>
         </div>
 
-        {filteredPayments.length === 0 && (
+        {!loading && filteredPayments.length === 0 && (
           <div className="p-12 text-center text-slate-400">
             <p className="text-sm font-medium">No transactions found matching your filter.</p>
           </div>

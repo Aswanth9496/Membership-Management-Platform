@@ -411,10 +411,24 @@ const getPaymentStatus = async (memberId) => {
   }
 };
 
-// 4. Get Transactions (Ledger)
-const getTransactions = async (memberId) => {
+// 4. Get Transactions (Ledger - Unified)
+const getTransactions = async (memberId = null, isAdmin = false) => {
   try {
-    const history = await Payment.find({ user: memberId }).sort({ createdAt: -1 }).lean();
+    // Only return completed or failed transactions (ignore pending)
+    let query = { status: { $in: ['completed', 'failed'] } };
+    
+    if (!isAdmin && memberId) {
+      query.user = memberId;
+    }
+
+    let historyQuery = Payment.find(query).sort({ createdAt: -1 });
+
+    // If admin, populate the user details so the UI knows who made the payment
+    if (isAdmin) {
+      historyQuery = historyQuery.populate('user', 'member.fullName email establishment.name');
+    }
+
+    const history = await historyQuery.lean();
 
     return history.map(h => ({
       id: h._id,
@@ -422,9 +436,15 @@ const getTransactions = async (memberId) => {
       amount: h.amount,
       status: h.status,
       date: h.createdAt,
-      paymentMethod: 'Razorpay',
-      description: h.paymentType === 'renewal' ? 'Annual Renewal' : 'New Registration',
-      receipt: h.razorpayOrderId
+      paymentMethod: h.paymentDetails?.method || 'Razorpay',
+      description: h.paymentType === 'new' ? 'New Registration' : (h.paymentType === 'renewal' ? 'Annual Renewal' : 'Event Registration'),
+      receipt: h.razorpayOrderId,
+      // Pass along member data if an admin requested it
+      memberInfo: isAdmin && h.user ? {
+        name: h.user.member?.fullName || 'Unknown',
+        email: h.user.email,
+        establishment: h.user.establishment?.name || 'Unknown'
+      } : null
     }));
   } catch (error) {
     console.error('Error getting transactions:', error);

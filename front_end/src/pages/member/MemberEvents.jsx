@@ -142,10 +142,10 @@ const MemberEvents = () => {
       <div className="flex items-center gap-6 flex-1">
         <div className="flex flex-col items-center justify-center w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all shadow-sm">
            <span className="text-[10px] font-black text-blue-600 group-hover:text-white uppercase tracking-tighter transition-colors">
-              {new Date(event.eventDate.startDate).toLocaleDateString('en-US', { month: 'short' })}
+              {event.eventDate?.startDate ? new Date(event.eventDate.startDate).toLocaleDateString('en-US', { month: 'short' }) : 'TBD'}
            </span>
            <span className="text-xl font-black text-slate-800 group-hover:text-white leading-none transition-colors">
-              {new Date(event.eventDate.startDate).getDate()}
+              {event.eventDate?.startDate ? new Date(event.eventDate.startDate).getDate() : '-'}
            </span>
         </div>
 
@@ -165,10 +165,10 @@ const MemberEvents = () => {
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-400">
              <p className="text-[11px] font-bold flex items-center gap-2">
-                <span className="text-sm">📍</span> {event.venue.city}, {event.venue.name}
+                <span className="text-sm">📍</span> {event.venue?.city || 'Location TBA'}{event.venue?.name ? `, ${event.venue.name}` : ''}
              </p>
              <p className="text-[11px] font-bold flex items-center gap-2">
-                <span className="text-sm">🕒</span> {event.eventDate.startTime} - {event.eventDate.endTime}
+                <span className="text-sm">🕒</span> {event.eventDate?.startTime || 'TBA'} - {event.eventDate?.endTime || 'TBA'}
              </p>
           </div>
         </div>
@@ -303,10 +303,10 @@ const MemberEvents = () => {
               {/* Quick Metadata Dashboard */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
                 {[
-                  { label: 'Start Date', val: new Date(selectedEvent.eventDate.startDate).toLocaleDateString(), icon: '📅' },
-                  { label: 'Time Slot', val: `${selectedEvent.eventDate.startTime}`, icon: '🕒' },
-                  { label: 'Location', val: selectedEvent.venue.city, icon: '📍' },
-                  { label: 'Capacity', val: `${selectedEvent.registration.maxCapacity - selectedEvent.registration.currentCount} Left`, icon: '🎟️' }
+                  { label: 'Start Date', val: selectedEvent.eventDate?.startDate ? new Date(selectedEvent.eventDate.startDate).toLocaleDateString() : 'TBA', icon: '📅' },
+                  { label: 'Time Slot', val: `${selectedEvent.eventDate?.startTime || 'TBA'}`, icon: '🕒' },
+                  { label: 'Location', val: selectedEvent.venue?.city || 'TBA', icon: '📍' },
+                  { label: 'Capacity', val: `${(selectedEvent.registration?.maxCapacity || 0) - (selectedEvent.registration?.currentCount || 0)} Left`, icon: '🎟️' }
                 ].map((item, idx) => (
                   <div key={idx} className="space-y-1">
                     <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">{item.label}</p>
@@ -335,8 +335,8 @@ const MemberEvents = () => {
                   <div className="flex gap-4">
                      <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-xl">🏢</div>
                      <div className="space-y-0.5">
-                        <p className="text-xs font-black text-slate-800 leading-tight">{selectedEvent.venue.name}</p>
-                        <p className="text-[10px] font-bold text-slate-500">{selectedEvent.venue.address}</p>
+                        <p className="text-xs font-black text-slate-800 leading-tight">{selectedEvent.venue?.name || 'TBA'}</p>
+                        <p className="text-[10px] font-bold text-slate-500">{selectedEvent.venue?.address || 'TBA'}</p>
                      </div>
                   </div>
                 </div>
@@ -345,8 +345,8 @@ const MemberEvents = () => {
                   <div className="flex gap-4">
                      <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-xl">👤</div>
                      <div className="space-y-0.5">
-                        <p className="text-xs font-black text-slate-800 leading-tight">{selectedEvent.organizer.contactPerson}</p>
-                        <p className="text-[10px] font-bold text-slate-500">📞 {selectedEvent.organizer.contactPhone}</p>
+                        <p className="text-xs font-black text-slate-800 leading-tight">{selectedEvent.organizer?.contactPerson || 'TBA'}</p>
+                        <p className="text-[10px] font-bold text-slate-500">📞 {selectedEvent.organizer?.contactPhone || 'TBA'}</p>
                      </div>
                   </div>
                 </div>
@@ -370,7 +370,7 @@ const MemberEvents = () => {
               ) : (
                 <button 
                   onClick={() => handleRegister(selectedEvent._id)}
-                  disabled={registerLoading || !selectedEvent.registration.isOpen}
+                  disabled={registerLoading || !selectedEvent.registration?.isOpen}
                   className="w-full md:w-auto px-16 py-4 bg-blue-600 hover:bg-slate-900 text-white rounded-2xl shadow-2xl shadow-blue-600/20 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
                 >
                   {registerLoading ? (

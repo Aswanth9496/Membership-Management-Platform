@@ -3,7 +3,7 @@ const router = express.Router();
 const { getStatus, createOrder, verify, getTransactionsList, handleWebhook, dummyPayment } = require('../controllers/paymentController');
 const { verifyPaymentValidationRules, validate } = require('../validators/paymentValidator');
 const asyncHandler = require('../middlewares/asyncHandler');
-const { authenticateMember } = require('../middlewares/authMiddleware');
+const { authenticateMember, authenticateAny } = require('../middlewares/authMiddleware');
 
 // Get Payment Status (Protected - Member must be logged in)
 router.get('/status', authenticateMember, asyncHandler(getStatus));
@@ -14,8 +14,8 @@ router.post('/create-order', authenticateMember, asyncHandler(createOrder));
 // Verify Payment (Public - Called by Razorpay webhook OR frontend callback)
 router.post('/verify', verifyPaymentValidationRules, validate, asyncHandler(verify));
 
-// Get Transactions (Protected)
-router.get('/transactions', authenticateMember, asyncHandler(getTransactionsList));
+// Get Transactions (Protected - Unified for Admin & Member)
+router.get('/transactions', authenticateAny, asyncHandler(getTransactionsList));
 
 // Dummy Success Bypass (Protected)
 router.post('/dummy-success', authenticateMember, asyncHandler(dummyPayment));

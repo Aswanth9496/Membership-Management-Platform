@@ -53,6 +53,7 @@ export const memberEndpoints = {
     createOrder: () => api.post('/api/payment/create-order'),
     verifyPayment: (paymentData) => api.post('/api/payment/verify', paymentData),
     dummySuccess: () => api.post('/api/payment/dummy-success'),
+    getTransactions: () => api.get('/api/payment/transactions'),
   },
 
   // 📝 Reference Verification (use api - with credentials)

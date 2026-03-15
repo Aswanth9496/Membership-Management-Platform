@@ -96,7 +96,7 @@ const EditProfile = () => {
         setProfileLoading(true)
         const response = await memberEndpoints.profile.getProfile()
         if (response && response.success) {
-          const data = response.data.member
+          const data = response.data?.member || {}
           setProfile(data)
           setFormData({
             establishment: {
@@ -122,7 +122,9 @@ const EditProfile = () => {
               fullName: data.member?.fullName || '',
               mobile: data.member?.mobile || '',
               landline: data.member?.landline || '',
-              dateOfBirth: data.member?.dateOfBirth ? new Date(data.member.dateOfBirth).toISOString().split('T')[0] : '',
+              dateOfBirth: data.member?.dateOfBirth && !isNaN(new Date(data.member.dateOfBirth).getTime()) 
+                ? new Date(data.member.dateOfBirth).toISOString().split('T')[0] 
+                : '',
               roleInAgency: data.member?.roleInAgency || '',
               officeType: data.member?.officeType || '',
             },

@@ -79,10 +79,11 @@ const TransactionsManagement = () => {
   }, [navigate, admin.isAuthenticated])
 
   const filteredTransactions = transactions.filter(txn => {
-    const matchesStatus = filterStatus === 'all' || txn.paymentStatus === filterStatus
-    const matchesSearch = txn.eventName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         txn.participantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         txn.transactionId.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = filterStatus === 'all' || txn.status.toLowerCase() === filterStatus.toLowerCase()
+    const matchesSearch = 
+      (txn.description && txn.description.toLowerCase().includes(searchTerm.toLowerCase())) || 
+      (txn.memberInfo?.name && txn.memberInfo.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (txn.transactionId && txn.transactionId.toLowerCase().includes(searchTerm.toLowerCase()))
     return matchesStatus && matchesSearch
   })
 
@@ -126,7 +127,7 @@ const TransactionsManagement = () => {
           </div>
           
           <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
-            {['all', 'completed', 'pending', 'failed'].map((status) => (
+            {['all', 'completed', 'failed'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
@@ -159,35 +160,34 @@ const TransactionsManagement = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredTransactions.length > 0 ? (
                 filteredTransactions.map((txn) => (
-                  <tr key={txn.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={txn.id || txn._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">{txn.transactionId}</div>
-                      <div className="text-[10px] text-gray-400 font-mono">{txn.id}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{txn.eventName}</div>
+                      <div className="text-sm text-gray-900">{txn.description || 'General Payment'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{txn.participantName}</div>
-                        <div className="text-xs text-gray-500">{txn.email}</div>
+                        <div className="text-sm font-medium text-gray-900">{txn.memberInfo?.name || txn.participantName || 'Guest User'}</div>
+                        <div className="text-xs text-gray-500">{txn.memberInfo?.email || txn.email || ''}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-gray-900">₹{txn.amountPaid}</div>
-                      <div className="text-[10px] text-gray-500">{txn.paymentMethod}</div>
+                      <div className="text-sm font-bold text-gray-900">₹{txn.amount}</div>
+                      <div className="text-[10px] text-gray-500">{txn.paymentMethod || 'Razorpay'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(txn.paymentStatus)}`}>
-                        {txn.paymentStatus}
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(txn.status || txn.paymentStatus)}`}>
+                        {txn.status || txn.paymentStatus}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-600">
-                        {new Date(txn.paymentDate).toLocaleDateString()}
+                        {new Date(txn.date || txn.paymentDate).toLocaleDateString()}
                       </div>
                       <div className="text-[10px] text-gray-400">
-                        {new Date(txn.paymentDate).toLocaleTimeString()}
+                        {new Date(txn.date || txn.paymentDate).toLocaleTimeString()}
                       </div>
                     </td>
                   </tr>

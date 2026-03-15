@@ -67,8 +67,8 @@ const authorizeRoles = (...roles) => {
 // Authenticate Member Middleware
 const authenticateMember = async (req, res, next) => {
   try {
-    const token = req.cookies.memberToken;
-    console.log("Member token:", token);
+    let token = req.cookies.memberToken || req.query.token;
+    console.log("Member token:", token ? 'Found' : 'Missing');
 
     if (!token) {
       throw new ApiError(401, 'Not authorized. Please login to access this resource');

@@ -47,9 +47,13 @@ const downloadCertificate = async (req, res) => {
     }
 
     const { certificate, establishment, member: memberInfo } = member;
+    console.log(member);
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="membership_certificate_${member.membershipNumber || 'hub'}.pdf"`);
+    
+    // If it's the iframe rendering it, use 'inline'. If it's a direct download button click, use 'attachment'.
+    const disposition = req.query.preview === 'true' ? 'inline' : 'attachment';
+    res.setHeader('Content-Disposition', `${disposition}; filename="membership_certificate_${member.membershipNumber || 'hub'}.pdf"`);
 
     const doc = new PDFDocument({
       size: 'A4',
@@ -59,49 +63,48 @@ const downloadCertificate = async (req, res) => {
 
     doc.pipe(res);
 
-    doc.rect(0, 0, doc.page.width, doc.page.height).fill('#F8FAFC');
+    // 1. Load the background template image
+    const path = require('path');
+    const templatePath = path.join(__dirname, '../public/templates/certificate_bg.png');
+    
+    // Draw the image exactly matching the A4 landscape dimensions
+    doc.image(templatePath, 0, 0, { width: doc.page.width, height: doc.page.height });
 
-    doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).strokeColor('#2563EB').lineWidth(4).stroke();
-    doc.rect(30, 30, doc.page.width - 60, doc.page.height - 60).strokeColor('#94A3B8').lineWidth(1).stroke();
+    // 2. Inject Dynamic Variables over the template
+    // The exact coordinates need to be fine-tuned based on the image's physical layout
+    
+    // Member Name / Establishment Name (Centered horizontally, positioned vertically over the "AIR ZOOM..." blank area)
+    doc.fillColor('#334155')
+       .fontSize(24)
+       .font('Helvetica-Bold')
+       .text(establishment?.name || establishment?.tradeName || memberInfo?.fullName || 'Registered Establishment', 0, 240, { align: 'center' });
 
-    doc.fillColor('#0F172A').fontSize(42).font('Helvetica-Bold').text('Membership Certificate', 0, 100, {
-      align: 'center'
-    });
+    // Address / Secondary Details (Right underneath the name)
+    doc.fillColor('#475569')
+       .fontSize(16)
+       .font('Helvetica-Bold')
+       .text(memberInfo?.address?.city || 'Kerala', 0, 275, { align: 'center' });
 
-    doc.fillColor('#64748B').fontSize(16).font('Helvetica').text('Recognized Platform Vendor Authority', 0, 155, {
-      align: 'center'
-    });
+    // Membership Number (e.g. "0112")
+    const certNumber = certificate?.certificateNumber || member.membershipNumber || member._id.toString().substring(0, 4).toUpperCase();
+    doc.fillColor('#475569')
+       .fontSize(14)
+       .font('Helvetica')
+       .text(`Membership No: ${certNumber}`, 0, 310, { align: 'center' });
 
-    doc.moveDown(3);
-    doc.fillColor('#334155').fontSize(18).text('This certifies that', { align: 'center' });
-
-    doc.moveDown(1);
-    doc.fillColor('#1E3A8A').fontSize(36).font('Helvetica-Bold').text(establishment?.name || establishment?.tradeName || 'Registered Establishment', { align: 'center' });
-
-    doc.moveDown(1);
-    doc.fillColor('#334155').fontSize(18).font('Helvetica').text('Owned by', { align: 'center' });
-
-    doc.moveDown(0.5);
-    doc.fillColor('#0F172A').fontSize(24).font('Helvetica-Bold').text(memberInfo?.fullName || 'Distinguished Member', { align: 'center' });
-
-    doc.moveDown(2);
-    doc.fillColor('#475569').fontSize(14).font('Helvetica').text('Is a fully approved and verified member in active standing.', { align: 'center' });
-
-    const issueDate = certificate?.issueDate ? new Date(certificate.issueDate).toLocaleDateString() : new Date().toLocaleDateString();
-    const expiryDate = certificate?.expiryDate ? new Date(certificate.expiryDate).toLocaleDateString() : 'Active';
-    const certNumber = certificate?.certificateNumber || member.membershipNumber || member._id.toString().substring(0, 8).toUpperCase();
-
-    const bottomY = doc.page.height - 120;
-
-    doc.fontSize(12).fillColor('#64748B');
-    doc.text('Date of Issue', 100, bottomY);
-    doc.fillColor('#0F172A').font('Helvetica-Bold').text(issueDate, 100, bottomY + 20);
-
-    doc.fillColor('#64748B').font('Helvetica').text('Certificate No.', doc.page.width / 2 - 40, bottomY);
-    doc.fillColor('#0F172A').font('Helvetica-Bold').text(certNumber, doc.page.width / 2 - 40, bottomY + 20);
-
-    doc.fillColor('#64748B').font('Helvetica').text('Valid Until', doc.page.width - 200, bottomY);
-    doc.fillColor('#0F172A').font('Helvetica-Bold').text(expiryDate, doc.page.width - 200, bottomY + 20);
+    // Dates
+    // The "Valid Through 2025 - 2026"
+    // To calculate the range correctly based on the certificate expiry
+    let validityYear = '2025 - 2026';
+    if (certificate?.expiryDate) {
+       const expYear = new Date(certificate.expiryDate).getFullYear();
+       validityYear = `${expYear - 1} - ${expYear}`;
+    }
+    
+    doc.fillColor('#475569')
+       .fontSize(14)
+       .font('Helvetica')
+       .text(`Valid Through ${validityYear}`, 80, 400); // Assuming this is aligned on the left like the image showed
 
     doc.end();
 

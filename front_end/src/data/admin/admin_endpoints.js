@@ -58,7 +58,7 @@ export const adminEndpoints = {
 
   // 💰 Payments (use api - with credentials)
   payments: {
-    getAll: () => api.get('/api/admin/payments'),
+    getAll: () => api.get('/api/payment/transactions'),
   },
 
   // 📅 Event Management Routes (use api - with credentials)

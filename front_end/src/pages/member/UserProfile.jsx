@@ -16,11 +16,16 @@ const UserProfile = () => {
       setLoading(true)
       const response = await memberEndpoints.profile.getProfile()
       if (response && response.success) {
-        setProfile(response.data.member)
-        // Also fetch payment status for dynamic amounts
-        const payRes = await memberEndpoints.payments.getStatus()
-        if (payRes.success) {
-          setPaymentStatus(payRes.data)
+        setProfile(response.data?.member || null)
+        
+        // Also fetch payment status for dynamic amounts - isolate try-catch
+        try {
+          const payRes = await memberEndpoints.payments.getStatus()
+          if (payRes?.success) {
+            setPaymentStatus(payRes.data)
+          }
+        } catch (payErr) {
+          console.error('Non-critical error: Failed to fetch payment status:', payErr)
         }
       } else {
         setError('Failed to load profile details')
@@ -65,7 +70,14 @@ const UserProfile = () => {
         return
       }
 
-      const { orderId, amount, currency, keyId, memberDetails, notes } = orderRes.data
+      const orderData = orderRes.data || {}
+      const { orderId, amount, currency, keyId, memberDetails, notes } = orderData
+      
+      if (!orderId || !keyId) {
+        setError('Received invalid payment data from server.')
+        setLoading(false)
+        return
+      }
 
       // 3. Initialize Razorpay Checkout
       const options = {
@@ -107,6 +119,12 @@ const UserProfile = () => {
         theme: {
           color: '#2563EB',
         },
+      }
+
+      if (!window.Razorpay) {
+        setError('Payment gateway failed to load. Please disable adblockers or try another browser.')
+        setLoading(false)
+        return
       }
 
       const paymentObject = new window.Razorpay(options)
@@ -307,7 +325,9 @@ const UserProfile = () => {
               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">📄</div>
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-black text-slate-800 truncate">Address_Proof.pdf</p>
-                <p className="text-[9px] text-slate-400 font-bold uppercase">Uploaded on {new Date(profile.documents.agencyAddressProof.uploadedAt).toLocaleDateString()}</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase">
+                  Uploaded on {profile.documents.agencyAddressProof.uploadedAt ? new Date(profile.documents.agencyAddressProof.uploadedAt).toLocaleDateString() : 'N/A'}
+                </p>
               </div>
               <a
                 href={profile.documents.agencyAddressProof.url}
@@ -330,7 +350,9 @@ const UserProfile = () => {
               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">🖼️</div>
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-black text-slate-800 truncate">Shop_Photo.pdf</p>
-                <p className="text-[9px] text-slate-400 font-bold uppercase">Uploaded on {new Date(profile.documents.shopPhoto.uploadedAt).toLocaleDateString()}</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase">
+                  Uploaded on {profile.documents.shopPhoto.uploadedAt ? new Date(profile.documents.shopPhoto.uploadedAt).toLocaleDateString() : 'N/A'}
+                </p>
               </div>
               <a
                 href={profile.documents.shopPhoto.url}
@@ -350,10 +372,10 @@ const UserProfile = () => {
       {/* Admin Info Section */}
       <div className="bg-slate-100 rounded-3xl p-6 sm:px-10 flex flex-col sm:flex-row justify-between items-center gap-4 border border-slate-200/50">
         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-          Member ID: <span className="text-slate-900 font-mono tracking-normal">{profile._id}</span>
+          Member ID: <span className="text-slate-900 font-mono tracking-normal">{profile._id || 'N/A'}</span>
         </div>
         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-          Registered Since: <span className="text-slate-900 tracking-normal">{new Date(profile.createdAt).toLocaleDateString()}</span>
+          Registered Since: <span className="text-slate-900 tracking-normal">{profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A'}</span>
         </div>
       </div>
     </div>

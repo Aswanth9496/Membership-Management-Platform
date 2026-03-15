@@ -28,10 +28,21 @@ const verify = async (req, res) => {
   successResponse(res, result, result.message || 'Payment verified successfully');
 };
 
-// Fetch user's payment transaction history ledger
+// Fetch user's or system's payment transaction history ledger
 const getTransactionsList = async (req, res) => {
-  const memberId = req.member._id;
-  const result = await getTransactions(memberId);
+  let result;
+  // If request comes from an Admin, fetch global ledger
+  if (req.admin) {
+    result = await getTransactions(null, true);
+  } 
+  // If request comes from a Member, fetch personal ledger
+  else if (req.member) {
+    const memberId = req.member._id;
+    result = await getTransactions(memberId, false);
+  } else {
+    throw new Error('Unauthorized');
+  }
+  
   successResponse(res, result, 'Transactions retrieved successfully');
 };
 
