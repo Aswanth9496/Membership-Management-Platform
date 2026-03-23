@@ -133,11 +133,39 @@ const getAllRequestsForAdmin = async () => {
     .sort({ createdAt: -1 });
 };
 
+/**
+ * Reapply a rejected reference request by the applicant
+ * @param {string} requestId 
+ * @param {string} applicantId 
+ */
+const reapplyRequest = async (requestId, applicantId) => {
+  const request = await ReferenceRequest.findOne({
+    _id: requestId,
+    applicantId
+  });
+
+  if (!request) {
+    throw new ApiError(404, 'Reference request not found or unauthorized');
+  }
+
+  if (request.status !== 'rejected') {
+    throw new ApiError(400, 'Only rejected requests can be reapplied');
+  }
+
+  request.status = 'pending';
+  request.remarks = ''; // Clear the rejection reason
+  request.verifiedAt = undefined;
+  await request.save();
+
+  return request;
+};
+
 module.exports = {
   createReferenceRequests,
   getAllRequestsForMember,
   getPendingRequestsForMember,
   updateRequestStatus,
   getRequestsByApplicant,
-  getAllRequestsForAdmin
+  getAllRequestsForAdmin,
+  reapplyRequest
 };

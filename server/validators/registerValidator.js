@@ -16,6 +16,7 @@ exports.registerValidationRules = [
     return true;
   }),
   body('establishment.officialEmail').trim().notEmpty().withMessage('Official email is required').isEmail().withMessage('Please provide a valid official email').normalizeEmail(),
+  body('establishment.website').optional({ checkFalsy: true }).isURL().withMessage('Please provide a valid website URL'),
   body('establishment.gstRegistered').optional().customSanitizer(value => value === 'true' || value === true),
   body('establishment.gstNumber').optional().trim().custom((value, { req }) => {
     if ((req.body.establishment?.gstRegistered === true || req.body.establishment?.gstRegistered === 'true') && !value) {
@@ -42,9 +43,45 @@ exports.registerValidationRules = [
   body('member.fullName').trim().notEmpty().withMessage('Member name is required'),
   body('member.dateOfBirth').notEmpty().withMessage('Date of birth is required').isISO8601().withMessage('Please provide a valid date'),
   body('member.mobile').trim().notEmpty().withMessage('Mobile number is required').matches(/^[6-9]\d{9}$/).withMessage('Please provide a valid 10-digit mobile number'),
+  body('member.landline').optional({ checkFalsy: true }).trim().matches(/^\d{8,15}$/).withMessage('Please provide a valid landline number'),
+  
+  // File validation
+  body('agencyAddressProof').custom((value, { req }) => {
+    if (!req.files || !req.files.agencyAddressProof) throw new Error('Agency address proof is required');
+    return true;
+  }),
+  body('activityLicense').custom((value, { req }) => {
+    if (!req.files || !req.files.activityLicense) throw new Error('Activity license is required');
+    return true;
+  }),
+  body('shopPhoto').custom((value, { req }) => {
+    if (!req.files || !req.files.shopPhoto) throw new Error('Shop photo is required');
+    const files = req.files.shopPhoto;
+    if (!Array.isArray(files)) return true;
+    if (files.length < 1) throw new Error('At least one shop photo is required');
+    if (files.length > 4) throw new Error('You can upload up to 4 shop photos');
+    return true;
+  }),
+  body('businessCard').custom((value, { req }) => {
+    if (!req.files || !req.files.businessCard) throw new Error('Business card is required');
+    return true;
+  }),
+  body('agencyLogo').custom((value, { req }) => {
+    if (!req.files || !req.files.agencyLogo) throw new Error('Agency logo is required');
+    return true;
+  }),
+  body('memberPhoto').custom((value, { req }) => {
+    if (!req.files || !req.files.memberPhoto) throw new Error('Main member photo is required');
+    return true;
+  }),
   
   // References validation
-  body('referral.references').optional().isArray().withMessage('References must be an array of IDs'),
+  body('references').optional().custom((value) => {
+    if (typeof value === 'string' || Array.isArray(value)) {
+      return true;
+    }
+    throw new Error('References must be a comma-separated string or an array of IDs');
+  }),
   
   // Partner/Staff (Optional)
   body('partner.name').optional().trim(),

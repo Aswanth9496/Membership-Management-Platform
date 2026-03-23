@@ -23,7 +23,7 @@ router.get(
 
 // Get Detailed Profile Change Request
 router.get(
-  '/:userId',
+  '/:id',
   getRequestDetailsValidationRules,
   validate,
   asyncHandler(getRequestDetails)
@@ -31,7 +31,7 @@ router.get(
 
 // Review Profile Change Request (Approve/Reject)
 router.put(
-  '/:userId/review',
+  '/:id/review',
   reviewRequestValidationRules,
   validate,
   asyncHandler(reviewRequest)

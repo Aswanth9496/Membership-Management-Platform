@@ -6,7 +6,7 @@ const register = async (req, res) => {
   if (req.files) {
     const baseUrl = `${process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`}/uploads/`;
     req.body.documents = req.body.documents || {};
-    
+
     const fileFields = [
       'agencyAddressProof',
       'activityLicense',
@@ -19,11 +19,22 @@ const register = async (req, res) => {
 
     fileFields.forEach(field => {
       if (req.files[field]) {
-        req.body.documents[field] = {
-          url: baseUrl + req.files[field][0].filename,
-          publicId: req.files[field][0].filename,
-          uploadedAt: new Date()
-        };
+        // If field has multiple files (e.g., shopPhoto), map to array
+        if (Array.isArray(req.files[field]) && req.files[field].length > 1) {
+          req.body.documents[field] = req.files[field].map(f => ({
+            url: baseUrl + f.filename,
+            publicId: f.filename,
+            uploadedAt: new Date()
+          }));
+        } else {
+          // Single file — keep previous object shape
+          const f = req.files[field][0];
+          req.body.documents[field] = {
+            url: baseUrl + f.filename,
+            publicId: f.filename,
+            uploadedAt: new Date()
+          };
+        }
       }
     });
   }
@@ -45,7 +56,9 @@ const register = async (req, res) => {
   console.log('Files:', req.files ? Object.keys(req.files) : 'None');
 
   const user = await registerUser(req.body);
+  console.log('User:', user);
   const userData = formatUserResponse(user);
+  console.log('User Data:', userData);
 
   createdResponse(
     res,

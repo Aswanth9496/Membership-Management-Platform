@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useDispatch } from 'react-redux'
+import { Link, useNavigate, Navigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import { memberEndpoints } from '../../data/member'
 import { memberLogin } from '../../store/authSlice'
 
@@ -14,6 +14,10 @@ const MemberLogin = () => {
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const isAuthenticated = useSelector(state => state.auth.member.isAuthenticated)
+
+  // Already logged in — skip the login page entirely
+  if (isAuthenticated) return <Navigate to="/member" replace />
 
   const handleChange = (e) => {
     setFormData({
@@ -34,12 +38,11 @@ const MemberLogin = () => {
         // Store user data in Redux
         dispatch(memberLogin({ member: response.data.member }))
         // Navigate to profile
-        navigate('/member/profile')
+        navigate('/member', { replace: true })
       } else {
         setError(response?.message || 'Invalid email or password')
       }
     } catch (err) {
-      console.error('Member login error:', err)
       setError('An error occurred. Please try again later.')
     } finally {
       setLoading(false)

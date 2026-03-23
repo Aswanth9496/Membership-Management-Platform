@@ -78,16 +78,16 @@ exports.createEventValidationRules = [
     }),
 
   // Organizer
-  body('organizer.contactPerson')
+  body('organizer.primary.name')
     .trim()
     .notEmpty().withMessage('Contact person is required'),
 
-  body('organizer.contactEmail')
+  body('organizer.primary.email')
     .trim()
     .notEmpty().withMessage('Contact email is required')
     .isEmail().withMessage('Invalid email format'),
 
-  body('organizer.contactPhone')
+  body('organizer.primary.phone')
     .trim()
     .notEmpty().withMessage('Contact phone is required')
     .isMobilePhone('en-IN').withMessage('Invalid phone number'),
@@ -177,15 +177,28 @@ exports.updateEventValidationRules = [
     .isFloat({ min: 0 }).withMessage('Price cannot be negative'),
 
   // Organizer (optional)
-  body('organizer.contactEmail')
+  body('organizer.primary.name')
+    .optional()
+    .trim()
+    .notEmpty().withMessage('Contact person cannot be empty'),
+
+  body('organizer.primary.email')
     .optional()
     .trim()
     .isEmail().withMessage('Invalid email format'),
 
-  body('organizer.contactPhone')
+  body('organizer.primary.phone')
     .optional()
     .trim()
     .isMobilePhone('en-IN').withMessage('Invalid phone number'),
+
+  body('organizer.secondary1.name').optional().trim(),
+  body('organizer.secondary1.email').optional().trim().isEmail().withMessage('Invalid secondary email format'),
+  body('organizer.secondary1.phone').optional().trim(),
+
+  body('organizer.secondary2.name').optional().trim(),
+  body('organizer.secondary2.email').optional().trim().isEmail().withMessage('Invalid secondary email format'),
+  body('organizer.secondary2.phone').optional().trim(),
 
   // Status (optional)
   body('status')

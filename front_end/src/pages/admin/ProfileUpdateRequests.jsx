@@ -20,7 +20,19 @@ const ProfileUpdateRequests = () => {
       setLoading(true)
       const response = await adminEndpoints.profileUpdates.getAll()
       if (response && response.success) {
-        setRequests(response.data.filter(req => req.status === 'pending'))
+        // Backend returns { success: true, data: { requests: [...] } }
+        // We ensure we access the requests array correctly
+        const requestsData = response.data?.requests || []
+        const mapped = requestsData.map(req => ({
+          id: req.id,
+          userId: req.userId,
+          userName: req.memberDetails?.fullName || 'N/A',
+          email: req.memberDetails?.email || 'N/A',
+          establishment: req.memberDetails?.establishmentName || 'N/A',
+          requestedAt: req.changeRequest?.requestedAt,
+          status: req.changeRequest?.status || 'pending'
+        }))
+        setRequests(mapped)
       } else {
         setError('Failed to load profile update requests')
       }
@@ -33,17 +45,51 @@ const ProfileUpdateRequests = () => {
   }
 
   useEffect(() => {
-    if (!admin.isAuthenticated) {
+    if (!admin || !admin.isAuthenticated) {
       navigate('/admin/login')
       return
     }
     fetchRequests()
-  }, [navigate, admin.isAuthenticated])
+  }, [navigate, admin?.isAuthenticated])
 
-  const handleReview = (request) => {
-    setSelectedRequest(request)
-    setShowReviewModal(true)
-    setRejectionReason('')
+  const handleReview = async (request) => {
+    try {
+      setActionLoading(true)
+      const response = await adminEndpoints.profileUpdates.getDetails(request.id)
+      if (response && response.success) {
+        const { currentData, requestedData: changes } = response.data
+        
+        // Build a complete "requested" profile by merging changes into a current copy
+        const requestedData = JSON.parse(JSON.stringify(currentData))
+        
+        const deepMerge = (target, source) => {
+          if (!source) return
+          Object.keys(source).forEach(key => {
+            if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) && !(source[key] instanceof Date)) {
+              if (!target[key]) target[key] = {}
+              deepMerge(target[key], source[key])
+            } else {
+              target[key] = source[key]
+            }
+          })
+        }
+        
+        deepMerge(requestedData, changes)
+
+        setSelectedRequest({
+          ...request,
+          currentData,
+          requestedData
+        })
+        setShowReviewModal(true)
+        setRejectionReason('')
+      }
+    } catch (err) {
+      console.error('Error fetching details:', err)
+      alert('Failed to load request details')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const handleAction = async (action) => {
@@ -57,7 +103,7 @@ const ProfileUpdateRequests = () => {
       setActionLoading(true)
       const response = await adminEndpoints.profileUpdates.reviewRequest(selectedRequest.id, {
         action,
-        rejectionReason: action === 'reject' ? rejectionReason : undefined
+        remarks: action === 'reject' ? rejectionReason : undefined
       })
 
       if (response && response.success) {
@@ -75,96 +121,215 @@ const ProfileUpdateRequests = () => {
     }
   }
 
-  const getChangedFields = (current, requested) => {
-    const changes = []
-    const flattenObject = (obj, prefix = '') => {
-      const result = {}
-      for (const key in obj) {
-        if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
-          Object.assign(result, flattenObject(obj[key], `${prefix}${key}.`))
-        } else {
-          result[`${prefix}${key}`] = obj[key]
-        }
-      }
-      return result
+  // Human-readable section definitions to replace "coding setup"
+  const MODAL_SECTIONS = [
+    {
+      title: 'Establishment Details',
+      fields: [
+        { label: 'Agency Name', path: 'establishment.name' },
+        { label: 'Trade Name', path: 'establishment.tradeName' },
+        { label: 'Year of Establishment', path: 'establishment.yearOfEstablishment' },
+        { label: 'Official Classification', path: 'establishment.officialClassification' },
+        { label: 'Business Type', path: 'establishment.businessType' },
+        { label: 'Official Email', path: 'establishment.officialEmail' },
+        { label: 'Website', path: 'establishment.website' },
+        { label: 'GST Registered', path: 'establishment.gstRegistered' },
+        { label: 'GST Number', path: 'establishment.gstNumber' },
+      ]
+    },
+    {
+      title: 'Location Information',
+      fields: [
+        { label: 'State', path: 'location.state' },
+        { label: 'District', path: 'location.district' },
+        { label: 'Region', path: 'location.region' },
+        { label: 'City', path: 'location.city' },
+        { label: 'Registered Address', path: 'location.registeredAddress' },
+        { label: 'Communication Address', path: 'location.communicationAddress' },
+        { label: 'Addresses Same?', path: 'location.isSameAddress' },
+        { label: 'Pin Code', path: 'location.pinCode' },
+      ]
+    },
+    {
+      title: 'Member Information',
+      fields: [
+        { label: 'Full Name', path: 'member.fullName' },
+        { label: 'Role in Agency', path: 'member.roleInAgency' },
+        { label: 'Office Type', path: 'member.officeType' },
+        { label: 'Mobile Number', path: 'member.mobile' },
+        { label: 'Landline', path: 'member.landline' },
+        { label: 'Date of Birth', path: 'member.dateOfBirth' },
+      ]
+    },
+    {
+      title: 'Partner Details',
+      fields: [
+        { label: 'Partner Name', path: 'partner.name' },
+        { label: 'Partner Mobile', path: 'partner.mobile' },
+      ]
+    },
+    {
+      title: 'Staff Details',
+      fields: [
+        { label: 'Staff Name', path: 'staff.name' },
+        { label: 'Staff Mobile', path: 'staff.mobile' },
+      ]
+    },
+    {
+      title: 'Documents & Remarks',
+      fields: [
+        { label: 'Shop Photo', path: 'documents.shopPhoto' },
+        { label: 'Identity Proof', path: 'documents.idProof' },
+        { label: 'Address Proof', path: 'documents.agencyAddressProof' },
+        { label: 'Business License', path: 'documents.activityLicense' },
+        { label: 'Business Card', path: 'documents.businessCard' },
+        { label: 'Agency Logo', path: 'documents.agencyLogo' },
+        { label: 'Member Photo', path: 'documents.memberPhoto' },
+        { label: 'Admin Remarks/Note', path: 'remarks' },
+      ]
     }
+  ]
 
-    const flatCurrent = flattenObject(current)
-    const flatRequested = flattenObject(requested)
-
-    for (const key in flatRequested) {
-      if (JSON.stringify(flatCurrent[key]) !== JSON.stringify(flatRequested[key])) {
-        changes.push({
-          field: key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase()),
-          currentValue: flatCurrent[key] === null || flatCurrent[key] === undefined ? 'N/A' : String(flatCurrent[key]),
-          requestedValue: String(flatRequested[key]),
-        })
-      }
-    }
-    return changes
+  const getValueByPath = (obj, path) => {
+    return path.split('.').reduce((acc, part) => acc && acc[part], obj)
   }
 
-  if (loading) {
+  const renderComparisonTable = (current, requested) => {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600"></div>
-        </div>
+      <div className="space-y-6">
+        {MODAL_SECTIONS.map((section, sIdx) => {
+          return (
+            <div key={sIdx} className="border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+              <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
+                <h3 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">{section.title}</h3>
+              </div>
+              <table className="w-full text-[11px] border-collapse">
+                <thead className="bg-slate-50/50">
+                  <tr className="border-b border-slate-200">
+                    <th className="px-4 py-2 text-left font-bold text-slate-500 w-1/4 border-r border-slate-200 text-[10px] uppercase">Name</th>
+                    <th className="px-4 py-2 text-left font-bold text-slate-500 w-3/8 border-r border-slate-200 text-[10px] uppercase">Current</th>
+                    <th className="px-4 py-2 text-left font-bold text-blue-600 w-3/8 text-[10px] uppercase">Requested</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {section.fields.map((field, fIdx) => {
+                    const curr = getValueByPath(current, field.path)
+                    const req = getValueByPath(requested, field.path)
+                    
+                    const isChanged = JSON.stringify(curr) !== JSON.stringify(req)
+                    const isDoc = field.path.startsWith('documents') || field.label.toLowerCase().includes('photo') || field.label.toLowerCase().includes('proof') || field.label.toLowerCase().includes('license')
+
+                    // Format documents and values display
+                    const formatValue = (val, isFieldDoc) => {
+                      if (val === null || val === undefined || val === '') return '-'
+                      
+                      // Handle Booleans
+                      if (typeof val === 'boolean') return val ? 'Yes' : 'No'
+                      
+                      // Handle Dates
+                      if (val && (val.$date || (typeof val === 'string' && !isNaN(Date.parse(val)) && val.includes('-')))) {
+                        const dateStr = val.$date || val
+                        try {
+                          return new Date(dateStr).toLocaleDateString()
+                        } catch (e) {
+                          return 'N/A'
+                        }
+                      }
+
+                      if (isFieldDoc) {
+                        // Handle potential array (like shopPhoto)
+                        if (Array.isArray(val)) {
+                          return (
+                            <div className="flex flex-wrap gap-2">
+                              {val.map((file, i) => (
+                                <a key={i} href={file.url} target="_blank" rel="noreferrer" className="text-blue-500 underline font-bold uppercase text-[9px]">FILE {i+1}</a>
+                              ))}
+                            </div>
+                          )
+                        }
+                        // Handle single document object/string
+                        const url = typeof val === 'object' ? val.url : val
+                        return <a href={url} target="_blank" rel="noreferrer" className="text-blue-500 underline font-bold uppercase text-[9px]">VIEW DOCUMENT</a>
+                      }
+                      return String(val)
+                    }
+
+                    return (
+                      <tr key={fIdx} className={isChanged ? 'bg-blue-50/20' : ''}>
+                        <td className={`px-4 py-2 font-bold border-r border-slate-200 ${isChanged ? 'text-blue-600' : 'text-slate-500'}`}>{field.label}</td>
+                        <td className={`px-4 py-2 border-r border-slate-200 ${isChanged ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
+                          {formatValue(curr, isDoc)}
+                        </td>
+                        <td className={`px-4 py-2 font-bold ${isChanged ? 'text-blue-800 bg-blue-50' : 'text-slate-600'}`}>
+                          {formatValue(req, isDoc)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
+        })}
       </div>
     )
   }
 
-  return (
-    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Profile Update Requests</h1>
-        <p className="text-gray-600">Review and manage member profile update requests</p>
-      </div>
+  if (loading) return (
+    <div className="p-8 flex items-center justify-center min-h-[400px]" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+      <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading profile updates...</p>
+    </div>
+  )
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+  return (
+    <div className="p-6 bg-slate-50 min-h-screen" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4">
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">Profile Update Requests</h1>
+            <p className="text-xs text-slate-500 italic">Review pending member synchronization requests</p>
+          </div>
+          <div className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded border border-blue-100">
+            {requests.length} Pending
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Member</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Establishment</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Request Date</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-widest text-[10px]">Member</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-widest text-[10px]">Establishment</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-widest text-[10px]">Date Submitted</th>
+                <th className="px-4 py-3 text-right font-bold text-slate-600 uppercase tracking-widest text-[10px]">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-slate-100">
               {requests.length > 0 ? (
                 requests.map((request) => (
-                  <tr key={request.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{request.userName}</div>
-                        <div className="text-xs text-gray-500">{request.email}</div>
-                      </div>
+                  <tr key={request.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <p className="font-bold text-slate-800">{request.userName}</p>
+                      <p className="text-[10px] text-slate-400">{request.email}</p>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">{request.establishment}</div>
+                    <td className="px-4 py-3 text-slate-600 font-medium">{request.establishment}</td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {request.requestedAt ? `${new Date(request.requestedAt).toLocaleDateString()} ${new Date(request.requestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">
-                        {new Date(request.requestedAt).toLocaleDateString()} at {new Date(request.requestedAt).toLocaleTimeString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => handleReview(request)}
-                        className="px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 transition-colors shadow-sm"
+                        disabled={actionLoading}
+                        className="px-4 py-1.5 bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-blue-600 transition-all disabled:opacity-50"
                       >
-                        Review Changes
+                        {actionLoading ? '...' : 'Review'}
                       </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                    No pending profile update requests found.
-                  </td>
+                  <td colSpan="4" className="px-6 py-12 text-center text-slate-400 italic">No pending requests found.</td>
                 </tr>
               )}
             </tbody>
@@ -172,81 +337,48 @@ const ProfileUpdateRequests = () => {
         </div>
       </div>
 
-      {/* Review Modal */}
       {showReviewModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-5xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border border-slate-200">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Review Requested Changes</h2>
-                <p className="text-sm text-gray-500">Submitted by {selectedRequest.userName} ({selectedRequest.email})</p>
+                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Review Request: {selectedRequest.userName}</h2>
+                <p className="text-[10px] text-slate-500 italic">Carefully compare current data with member-requested updates before syncing</p>
               </div>
-              <button 
-                onClick={() => setShowReviewModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                disabled={actionLoading}
-              >
-                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <button onClick={() => setShowReviewModal(false)} className="text-slate-400 hover:text-red-500 text-lg">✕</button>
             </div>
 
-            <div className="px-6 py-6 overflow-y-auto">
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4 pb-2 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <div>Field</div>
-                  <div>Current Value</div>
-                  <div>Requested Value</div>
-                </div>
-                {getChangedFields(selectedRequest.currentData, selectedRequest.requestedData).map((change, idx) => (
-                  <div key={idx} className="grid grid-cols-3 gap-4 py-3 border-b border-gray-50 items-center">
-                    <div className="text-sm font-semibold text-gray-600">{change.field}</div>
-                    <div className="text-sm text-gray-500 bg-gray-50 p-2 rounded line-through decoration-red-300 opacity-70">
-                      {change.currentValue}
-                    </div>
-                    <div className="text-sm font-medium text-emerald-700 bg-emerald-50 p-2 rounded border border-emerald-100">
-                      {change.requestedValue}
-                    </div>
-                  </div>
-                ))}
+            <div className="p-6 overflow-y-auto bg-white">
+              <div className="mb-6">
+                {renderComparisonTable(selectedRequest.currentData, selectedRequest.requestedData)}
               </div>
 
-              <div className="mt-8">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Rejection Reason (Required if rejecting)
-                </label>
+              <div className="p-5 bg-slate-50 rounded-lg border border-slate-200">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 italic">Rejection Justification (Required if rejecting)</label>
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Explain why this update is being rejected..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition-all min-h-[100px]"
-                ></textarea>
+                  placeholder="State the reason for rejection clearly..."
+                  className="w-full px-4 py-3 border border-slate-200 rounded text-xs font-medium focus:outline-none focus:border-blue-500 min-h-[80px]"
+                />
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3">
-              <button
-                onClick={() => setShowReviewModal(false)}
-                className="px-6 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-                disabled={actionLoading}
-              >
-                Cancel
-              </button>
+            <div className="px-6 py-4 bg-slate-100 flex items-center justify-end gap-3 border-t border-slate-200">
               <button
                 onClick={() => handleAction('reject')}
                 disabled={actionLoading}
-                className="px-6 py-2.5 bg-red-100 text-red-700 text-sm font-bold rounded-xl hover:bg-red-200 transition-colors disabled:opacity-50"
+                className="px-6 py-2 bg-white text-red-600 border border-red-100 text-[10px] font-bold uppercase tracking-widest rounded hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
               >
                 Reject Request
               </button>
               <button
                 onClick={() => handleAction('approve')}
                 disabled={actionLoading}
-                className="px-8 py-2.5 bg-sky-600 text-white text-sm font-bold rounded-xl hover:bg-sky-700 shadow-md shadow-sky-100 transition-all disabled:opacity-50 flex items-center gap-2"
+                className="px-8 py-2 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
               >
-                {actionLoading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
-                Approve & Update Profile
+                {actionLoading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
+                Approve & Sync ✓
               </button>
             </div>
           </div>

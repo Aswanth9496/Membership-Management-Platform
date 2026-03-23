@@ -24,10 +24,7 @@ const loginMember = async (email, password) => {
       throw new ApiError(401, 'Invalid email or password');
     }
 
-    // Check member status
-    if (member.status === 'rejected') {
-      throw new ApiError(403, 'Your application has been rejected. Please contact support for more information.');
-    }
+    
 
     // Generate JWT token (30 days expiry)
     const token = generateToken(member._id, 'member', '30d');

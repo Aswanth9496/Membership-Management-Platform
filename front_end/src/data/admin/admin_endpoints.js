@@ -27,7 +27,7 @@ export const adminEndpoints = {
   members: {
     getAll: (filters = {}) => {
       const params = new URLSearchParams();
-      
+
       // Add filter parameters
       if (filters.status) params.append('status', filters.status);
       if (filters.search) params.append('search', filters.search);
@@ -36,10 +36,10 @@ export const adminEndpoints = {
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
       if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
       if (filters.role) params.append('role', filters.role);
-      
+
       const queryString = params.toString();
       const url = queryString ? `/api/admin/members?${queryString}` : '/api/admin/members';
-      
+
       return api.get(url);
     },
     updateStatus: (memberId, statusData) => api.put(`/api/admin/members/${memberId}/status`, statusData),
@@ -53,6 +53,7 @@ export const adminEndpoints = {
   // 🔄 Profile Update Requests (use api - with credentials)
   profileUpdates: {
     getAll: () => api.get('/api/admin/profile-updates'),
+    getDetails: (id) => api.get(`/api/admin/profile-updates/${id}`),
     reviewRequest: (requestId, reviewData) => api.put(`/api/admin/profile-updates/${requestId}/review`, reviewData),
   },
 
@@ -69,7 +70,7 @@ export const adminEndpoints = {
       if (filters.eventType) params.append('eventType', filters.eventType);
       if (filters.page) params.append('page', filters.page);
       if (filters.limit) params.append('limit', filters.limit);
-      
+
       const queryString = params.toString();
       const url = queryString ? `/api/admin/events?${queryString}` : '/api/admin/events';
       return api.get(url);

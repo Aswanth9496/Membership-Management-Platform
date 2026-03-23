@@ -14,7 +14,8 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.code === 11000) {
     const field = Object.keys(err.keyPattern)[0];
-    const message = `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`;
+    let fieldName = field.split('.').pop();
+    const message = `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} already exists`;
     error = new ApiError(400, message);
   }
 

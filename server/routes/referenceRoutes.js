@@ -10,6 +10,7 @@ router.get('/my-requests', authenticateMember, asyncHandler(referenceController.
 router.get('/my-submissions', authenticateMember, asyncHandler(referenceController.getMyApplicantRequests));
 router.patch('/:requestId/confirm', authenticateMember, asyncHandler(referenceController.confirmReference));
 router.patch('/:requestId/reject', authenticateMember, asyncHandler(referenceController.rejectReference));
+router.patch('/:requestId/reapply', authenticateMember, asyncHandler(referenceController.reapplyReference));
 
 // Admin routes (Protected & Authorized)
 router.get('/admin/all', authenticateAdmin, authorizeRoles('admin', 'superadmin'), asyncHandler(referenceController.getAllAdminReferenceRequests));

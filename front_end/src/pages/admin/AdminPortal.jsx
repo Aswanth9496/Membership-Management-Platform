@@ -4,12 +4,12 @@ import AdminHeaderNew from '../../components/admin/AdminHeaderNew'
 
 const AdminPortal = () => {
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
       <AdminSidebar />
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <AdminHeaderNew />
         

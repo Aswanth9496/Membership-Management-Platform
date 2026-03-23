@@ -62,11 +62,21 @@ const getAllAdminReferenceRequests = async (req, res) => {
   successResponse(res, { requests }, 'All reference requests retrieved successfully');
 };
 
+/**
+ * Reapply a rejected reference request
+ */
+const reapplyReference = async (req, res) => {
+  const { requestId } = req.params;
+  const request = await referenceService.reapplyRequest(requestId, req.member.id);
+  successResponse(res, { request }, 'Reference request submitted again successfully');
+};
+
 module.exports = {
   getAllMyReferences,
   getMyReferenceRequests,
   getMyApplicantRequests,
   confirmReference,
   rejectReference,
-  getAllAdminReferenceRequests
+  getAllAdminReferenceRequests,
+  reapplyReference
 };

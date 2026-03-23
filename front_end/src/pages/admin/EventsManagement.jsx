@@ -5,7 +5,7 @@ import adminEndpoints from '../../data/admin/admin_endpoints'
 
 const EventsManagement = () => {
   const navigate = useNavigate()
-  const { user: admin } = useSelector((state) => state.auth)
+  const admin = useSelector((state) => state.auth.admin)
   
   // State for events and loading
   const [events, setEvents] = useState([])
@@ -16,6 +16,7 @@ const EventsManagement = () => {
 
   // Filter and Pagination State
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
   const [selectedType, setSelectedType] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -43,13 +44,23 @@ const EventsManagement = () => {
     venueName: '',
     venueAddress: '',
     city: '',
+    mapLink: '', // Newly added
     maxCapacity: 100,
     registrationDeadline: '',
     isPaid: false,
     price: 0,
-    contactPerson: '',
-    contactEmail: '',
-    contactPhone: '',
+    
+    // Organizers
+    primaryName: '',
+    primaryEmail: '',
+    primaryPhone: '',
+    secondary1Name: '',
+    secondary1Email: '',
+    secondary1Phone: '',
+    secondary2Name: '',
+    secondary2Email: '',
+    secondary2Phone: '',
+
     status: 'published'
   })
 
@@ -69,7 +80,7 @@ const EventsManagement = () => {
       const response = await adminEndpoints.events.getAll({
         status: selectedStatus,
         eventType: selectedType,
-        search: searchTerm,
+        search: debouncedSearchTerm,
         page: currentPage,
         limit
       })
@@ -110,7 +121,8 @@ const EventsManagement = () => {
         venue: {
           name: eventForm.venueName,
           address: eventForm.venueAddress,
-          city: eventForm.city
+          city: eventForm.city,
+          mapLink: eventForm.mapLink
         },
         registration: {
           deadline: eventForm.registrationDeadline,
@@ -119,10 +131,22 @@ const EventsManagement = () => {
         isPaid: eventForm.isPaid,
         price: eventForm.isPaid ? eventForm.price : 0,
         organizer: {
-          contactPerson: eventForm.contactPerson,
-          contactEmail: eventForm.contactEmail,
-          contactPhone: eventForm.contactPhone,
-          createdBy: admin?.id // Backend might handle this but good to have
+          createdBy: admin?.user?._id || admin?.user?.id,
+          primary: {
+            name: eventForm.primaryName,
+            email: eventForm.primaryEmail,
+            phone: eventForm.primaryPhone
+          },
+          secondary1: {
+            name: eventForm.secondary1Name,
+            email: eventForm.secondary1Email,
+            phone: eventForm.secondary1Phone
+          },
+          secondary2: {
+            name: eventForm.secondary2Name,
+            email: eventForm.secondary2Email,
+            phone: eventForm.secondary2Phone
+          }
         },
         status: eventForm.status
       }
@@ -201,13 +225,24 @@ const EventsManagement = () => {
       venueName: event.venue?.name || '',
       venueAddress: event.venue?.address || '',
       city: event.venue?.city || '',
+      mapLink: event.venue?.mapLink || '',
       maxCapacity: event.registration?.maxCapacity || 100,
       registrationDeadline: event.registration?.deadline?.split('T')[0] || '',
       isPaid: event.isPaid || false,
       price: event.price || 0,
-      contactPerson: event.organizer?.contactPerson || '',
-      contactEmail: event.organizer?.contactEmail || '',
-      contactPhone: event.organizer?.contactPhone || '',
+      
+      primaryName: event.organizer?.primary?.name || event.organizer?.contactPerson || '',
+      primaryEmail: event.organizer?.primary?.email || event.organizer?.contactEmail || '',
+      primaryPhone: event.organizer?.primary?.phone || event.organizer?.contactPhone || '',
+      
+      secondary1Name: event.organizer?.secondary1?.name || '',
+      secondary1Email: event.organizer?.secondary1?.email || '',
+      secondary1Phone: event.organizer?.secondary1?.phone || '',
+      
+      secondary2Name: event.organizer?.secondary2?.name || '',
+      secondary2Email: event.organizer?.secondary2?.email || '',
+      secondary2Phone: event.organizer?.secondary2?.phone || '',
+
       status: event.status || 'published'
     })
     setShowEventModal(true)
@@ -219,13 +254,13 @@ const EventsManagement = () => {
     
     const headers = ['Name', 'Email', 'Phone', 'Agency', 'Payment Status', 'Amount', 'Date']
     const data = registrations.map(reg => [
-      reg.name,
-      reg.email,
-      reg.phone,
-      reg.establishment,
-      reg.paymentStatus,
-      reg.amount,
-      new Date(reg.registrationDate).toLocaleDateString()
+      reg.name || 'N/A',
+      reg.email || 'N/A',
+      reg.phone || 'N/A',
+      reg.establishment || 'N/A',
+      reg.paymentStatus || 'N/A',
+      reg.amount || 0,
+      reg.registrationDate ? new Date(reg.registrationDate).toLocaleDateString() : 'N/A'
     ])
     
     const csvContent = [headers, ...data].map(e => e.join(',')).join('\n')
@@ -240,9 +275,27 @@ const EventsManagement = () => {
     document.body.removeChild(link)
   }
 
+  // Search debouncing logic
   useEffect(() => {
-    fetchEvents()
-  }, [selectedStatus, selectedType, currentPage, searchTerm])
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+      setCurrentPage(1)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Authentication check
+  useEffect(() => {
+    if (!admin || !admin.isAuthenticated) {
+      navigate('/admin/login')
+    }
+  }, [admin, navigate])
+
+  useEffect(() => {
+    if (admin?.isAuthenticated) {
+      fetchEvents()
+    }
+  }, [selectedStatus, selectedType, currentPage, debouncedSearchTerm, admin?.isAuthenticated])
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -252,6 +305,10 @@ const EventsManagement = () => {
       case 'draft': return 'bg-amber-100 text-amber-700 border-amber-200'
       default: return 'bg-gray-100 text-gray-700'
     }
+  }
+
+  if (!admin || !admin.isAuthenticated) {
+    return null
   }
 
   return (
@@ -267,9 +324,12 @@ const EventsManagement = () => {
             setSelectedEvent(null)
             setEventForm({
               title: '', description: '', eventType: 'Workshop', startDate: '', endDate: '',
-              startTime: '10:00', endTime: '17:00', venueName: '', venueAddress: '', city: '',
+              startTime: '10:00', endTime: '17:00', venueName: '', venueAddress: '', city: '', mapLink: '',
               maxCapacity: 100, registrationDeadline: '', isPaid: false, price: 0, 
-              contactPerson: '', contactEmail: '', contactPhone: '', status: 'published'
+              primaryName: '', primaryEmail: '', primaryPhone: '',
+              secondary1Name: '', secondary1Email: '', secondary1Phone: '',
+              secondary2Name: '', secondary2Email: '', secondary2Phone: '',
+              status: 'published'
             })
             setShowEventModal(true)
           }}
@@ -373,25 +433,25 @@ const EventsManagement = () => {
                   </td>
                   <td className="px-6 py-5">
                     <div className="text-sm font-bold text-gray-700">
-                      {new Date(event.eventDate.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                      {event.eventDate?.startDate ? new Date(event.eventDate.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'TBA'}
                     </div>
                     <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                      {event.eventDate.startTime} - {event.eventDate.endTime}
+                      {event.eventDate?.startTime || '--:--'} - {event.eventDate?.endTime || '--:--'}
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <div className="text-xs font-bold text-gray-700 truncate max-w-[150px]">{event.venue?.name}</div>
-                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{event.venue?.city}</div>
+                    <div className="text-xs font-bold text-gray-700 truncate max-w-[150px]">{event.venue?.name || 'TBA'}</div>
+                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{event.venue?.city || 'TBA'}</div>
                   </td>
                   <td className="px-6 py-5 text-center">
                     <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 bg-gray-50 rounded-lg border border-gray-100">
-                      <span className="text-xs font-bold text-gray-700">{event.registration?.currentCount}</span>
-                      <span className="text-[10px] font-bold text-gray-300">/ {event.registration?.maxCapacity}</span>
+                      <span className="text-xs font-bold text-gray-700">{event.registration?.currentCount ?? 0}</span>
+                      <span className="text-[10px] font-bold text-gray-300">/ {event.registration?.maxCapacity ?? '--'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5 text-center">
                     <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border ${getStatusColor(event.status)}`}>
-                      {event.status}
+                      {event.status || 'draft'}
                     </span>
                   </td>
                   <td className="px-6 py-5 text-right">
@@ -573,6 +633,15 @@ const EventsManagement = () => {
                       />
                     </div>
                   </div>
+                  <div className="mt-4 space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Optional  Link</label>
+                    <input 
+                      type="url" placeholder="https://maps.google.com/..."
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium"
+                      value={eventForm.mapLink}
+                      onChange={e => setEventForm({ ...eventForm, mapLink: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 {/* Venue */}
@@ -612,35 +681,95 @@ const EventsManagement = () => {
                 </div>
 
                 {/* Organizer Contact */}
-                <div className="md:col-span-6 space-y-3">
+                <div className="md:col-span-6 space-y-4">
                   <h3 className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em] px-1">Organizer Roster</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Contact Person</label>
-                      <input 
-                        required type="text" placeholder="Coordinator Name"
-                        className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium"
-                        value={eventForm.contactPerson}
-                        onChange={e => setEventForm({ ...eventForm, contactPerson: e.target.value })}
-                      />
+                  
+                  {/* Primary Organizer */}
+                  <div className="bg-indigo-50/30 p-4 rounded-2xl border border-indigo-100/50 space-y-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">Primary Organizer <span className="text-red-500">*</span></h4>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Official Email</label>
-                      <input 
-                        required type="email" placeholder="event@domain.com"
-                        className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium"
-                        value={eventForm.contactEmail}
-                        onChange={e => setEventForm({ ...eventForm, contactEmail: e.target.value })}
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Name</label>
+                        <input 
+                          required type="text" placeholder="Mandatory Name"
+                          className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium"
+                          value={eventForm.primaryName}
+                          onChange={e => setEventForm({ ...eventForm, primaryName: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Email</label>
+                        <input 
+                          required type="email" placeholder="official@domain.com"
+                          className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium"
+                          value={eventForm.primaryEmail}
+                          onChange={e => setEventForm({ ...eventForm, primaryEmail: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Phone</label>
+                        <input 
+                          required type="tel" placeholder="+91 XXXXX XXXXX"
+                          className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium"
+                          value={eventForm.primaryPhone}
+                          onChange={e => setEventForm({ ...eventForm, primaryPhone: e.target.value })}
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Support Phone</label>
-                      <input 
-                        required type="tel" placeholder="+91 XXXXX XXXXX"
-                        className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium"
-                        value={eventForm.contactPhone}
-                        onChange={e => setEventForm({ ...eventForm, contactPhone: e.target.value })}
-                      />
+                  </div>
+
+                  {/* Secondary Organizers */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Secondary 1 */}
+                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                      <h4 className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Secondary Organizer 1 (Optional)</h4>
+                      <div className="space-y-2">
+                        <input 
+                          type="text" placeholder="Name"
+                          className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                          value={eventForm.secondary1Name}
+                          onChange={e => setEventForm({ ...eventForm, secondary1Name: e.target.value })}
+                        />
+                        <input 
+                          type="email" placeholder="Email"
+                          className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                          value={eventForm.secondary1Email}
+                          onChange={e => setEventForm({ ...eventForm, secondary1Email: e.target.value })}
+                        />
+                        <input 
+                          type="tel" placeholder="Phone"
+                          className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                          value={eventForm.secondary1Phone}
+                          onChange={e => setEventForm({ ...eventForm, secondary1Phone: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Secondary 2 */}
+                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                      <h4 className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Secondary Organizer 2 (Optional)</h4>
+                      <div className="space-y-2">
+                        <input 
+                          type="text" placeholder="Name"
+                          className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                          value={eventForm.secondary2Name}
+                          onChange={e => setEventForm({ ...eventForm, secondary2Name: e.target.value })}
+                        />
+                        <input 
+                          type="email" placeholder="Email"
+                          className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                          value={eventForm.secondary2Email}
+                          onChange={e => setEventForm({ ...eventForm, secondary2Email: e.target.value })}
+                        />
+                        <input 
+                          type="tel" placeholder="Phone"
+                          className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                          value={eventForm.secondary2Phone}
+                          onChange={e => setEventForm({ ...eventForm, secondary2Phone: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -788,15 +917,15 @@ const EventsManagement = () => {
                         <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-6 py-4 text-xs font-bold text-gray-300 text-center">{idx + 1}</td>
                           <td className="px-6 py-4">
-                            <div className="font-bold text-gray-800 text-sm">{reg.name}</div>
-                            <div className="text-[10px] text-gray-400 font-medium">Reg: {new Date(reg.registrationDate).toLocaleDateString()}</div>
+                            <div className="font-bold text-gray-800 text-sm">{reg.name || 'Anonymous'}</div>
+                            <div className="text-[10px] text-gray-400 font-medium">Reg: {reg.registrationDate ? new Date(reg.registrationDate).toLocaleDateString() : 'N/A'}</div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-xs font-medium text-gray-600 truncate max-w-[180px]">{reg.email}</div>
-                            <div className="text-[10px] text-gray-400 font-bold mt-0.5">{reg.phone}</div>
+                            <div className="text-xs font-medium text-gray-600 truncate max-w-[180px]">{reg.email || 'N/A'}</div>
+                            <div className="text-[10px] text-gray-400 font-bold mt-0.5">{reg.phone || 'N/A'}</div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-xs font-bold text-sky-700 truncate max-w-[200px]">{reg.establishment}</div>
+                            <div className="text-xs font-bold text-sky-700 truncate max-w-[200px]">{reg.establishment || 'N/A'}</div>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter border ${
@@ -806,7 +935,7 @@ const EventsManagement = () => {
                                 ? 'bg-gray-50 text-gray-500 border-gray-100'
                                 : 'bg-amber-50 text-amber-600 border-amber-100'
                             }`}>
-                              {reg.paymentStatus === 'completed' ? `Paid ₹${reg.amount}` : reg.paymentStatus}
+                              {reg.paymentStatus === 'completed' ? `Paid ₹${reg.amount || 0}` : (reg.paymentStatus || 'pending')}
                             </span>
                           </td>
                         </tr>

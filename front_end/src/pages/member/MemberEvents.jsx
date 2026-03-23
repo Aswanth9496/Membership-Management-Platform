@@ -12,6 +12,7 @@ const MemberEvents = () => {
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [registerLoading, setRegisterLoading] = useState(false)
+  const [modalError, setModalError] = useState(null)
 
   const fetchData = async () => {
     try {
@@ -41,6 +42,7 @@ const MemberEvents = () => {
       const response = await memberEndpoints.events.getDetails(eventId)
       if (response.success) {
         setSelectedEvent(response.data.event)
+        setModalError(null)
       } else {
         alert(response.message || 'Failed to fetch event details')
       }
@@ -122,11 +124,11 @@ const MemberEvents = () => {
           rzp.open()
         }
       } else {
-        alert(response.message || 'Registration failed')
+        setModalError(response.message || 'Registration failed')
       }
     } catch (err) {
       console.error('Registration error:', err)
-      alert(err.message || 'Registration failed')
+      setModalError(err.message || 'Registration failed')
     } finally {
       setRegisterLoading(false)
     }
@@ -260,125 +262,187 @@ const MemberEvents = () => {
 
       {/* FIXED PREMIUM OVERLAY - MOVED OUTSIDE ANIMATED CONTAINER FOR PERFECT ALIGNMENT */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 md:p-8">
-          {/* backdrop: Darker & More Blurred for "Focus" mode */}
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+          {/* backdrop: Clean Semi-transparent (Blur removed) */}
           <div 
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl animate-fadeIn transition-all"
+            className="absolute inset-0 bg-slate-900/60 transition-opacity"
             onClick={() => setSelectedEvent(null)}
           ></div>
           
-          {/* Modal Card - Precision Aligned, Independent of other transforms */}
-          <div className="relative bg-white w-full max-w-2xl max-h-[85vh] md:max-h-[90vh] rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col animate-scaleIn border border-white/20">
+          {/* Modal Card - Compact & Neat */}
+          <div className="relative bg-white w-full max-w-lg max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scaleIn border border-slate-200">
             
-            {/* Header: Focused & Clean */}
-            <div className="bg-slate-50 border-b border-slate-100 p-6 md:p-10 flex items-start justify-between gap-6 relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full blur-3xl"></div>
-              <div className="space-y-4 flex-1 relative z-10">
-                <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 bg-blue-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-lg shadow-lg shadow-blue-600/20">
+            {/* Header: Compact */}
+            <div className="bg-slate-50 border-b border-slate-100 p-5 flex items-start justify-between gap-4">
+              <div className="space-y-2 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black uppercase tracking-widest rounded-md">
                     {selectedEvent.eventType}
                   </span>
                   {selectedEvent.isActive && (
-                    <span className="px-3 py-1 bg-green-50 text-green-600 border border-green-100 text-[9px] font-black uppercase tracking-[0.2em] rounded-lg flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="px-2 py-0.5 bg-green-50 text-green-600 border border-green-100 text-[8px] font-black uppercase tracking-widest rounded-md flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse"></span>
                       Active
                     </span>
                   )}
                 </div>
-                <h3 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter leading-[1.1]">
+                <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight">
                   {selectedEvent.title}
                 </h3>
               </div>
               <button 
                 onClick={() => setSelectedEvent(null)}
-                className="relative z-10 w-12 h-12 rounded-2xl bg-slate-200/50 hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center text-slate-500 font-black text-xl shadow-inner"
+                className="w-8 h-8 rounded-lg bg-slate-200/50 hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center text-slate-500 font-bold text-sm"
               >
                 ✕
               </button>
             </div>
 
-            {/* Content Area: Multi-Column Hierarchy */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10 scrollbar-hide">
+            {/* Content Area: Compact Small Lettering */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-hide">
               
-              {/* Quick Metadata Dashboard */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+              {modalError && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-3 animate-shake">
+                  <span className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-sm">⚠️</span>
+                  <span className="flex-1">{modalError}</span>
+                  <button onClick={() => setModalError(null)} className="text-red-400 hover:text-red-600">✕</button>
+                </div>
+              )}
+
+              {/* Core Metadata Grid */}
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                 {[
-                  { label: 'Start Date', val: selectedEvent.eventDate?.startDate ? new Date(selectedEvent.eventDate.startDate).toLocaleDateString() : 'TBA', icon: '📅' },
-                  { label: 'Time Slot', val: `${selectedEvent.eventDate?.startTime || 'TBA'}`, icon: '🕒' },
-                  { label: 'Location', val: selectedEvent.venue?.city || 'TBA', icon: '📍' },
-                  { label: 'Capacity', val: `${(selectedEvent.registration?.maxCapacity || 0) - (selectedEvent.registration?.currentCount || 0)} Left`, icon: '🎟️' }
+                  { label: 'Event Date', val: selectedEvent.eventDate?.startDate ? new Date(selectedEvent.eventDate.startDate).toLocaleDateString() : 'TBA', icon: '📅' },
+                  { label: 'Schedule', val: `${selectedEvent.eventDate?.startTime || 'TBA'} - ${selectedEvent.eventDate?.endTime || 'TBA'}`, icon: '🕒' },
+                  { label: 'Deadline', val: selectedEvent.registration?.deadline ? new Date(selectedEvent.registration.deadline).toLocaleDateString() : 'TBA', icon: '⌛' },
+                  { label: 'Availability', val: `${(selectedEvent.registration?.maxCapacity || 0) - (selectedEvent.registration?.currentCount || 0)} Slots Left`, icon: '🎟️' }
                 ].map((item, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">{item.label}</p>
-                    <p className="text-[10px] font-black text-slate-800 flex items-center gap-2">
-                      <span className="opacity-40">{item.icon}</span> {item.val}
+                  <div key={idx} className="space-y-0.5">
+                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{item.label}</p>
+                    <p className="text-[10px] font-bold text-slate-700 flex items-center gap-1.5">
+                      <span className="opacity-60">{item.icon}</span> {item.val}
                     </p>
                   </div>
                 ))}
               </div>
 
-              {/* Description box - Clean & Readable */}
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
-                  <span className="w-6 h-1 bg-blue-600 rounded-full"></span>
-                  Official Brief
+              {/* Description */}
+              <div className="space-y-2">
+                <h4 className="text-[9px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-4 h-0.5 bg-blue-600 rounded-full"></span>
+                  Description
                 </h4>
-                <div className="text-sm text-slate-600 leading-relaxed font-semibold bg-white p-6 rounded-2xl border border-slate-100 shadow-sm whitespace-pre-wrap">
+                <div className="text-[11px] text-slate-600 leading-relaxed font-medium bg-white p-4 rounded-xl border border-slate-100 shadow-sm whitespace-pre-wrap">
                   {selectedEvent.description || 'No additional information provided.'}
                 </div>
               </div>
 
-              {/* Detailed Venue & Contact Side-by-Side */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-slate-100">
-                <div className="space-y-3">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Facility Details</p>
-                  <div className="flex gap-4">
-                     <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-xl">🏢</div>
-                     <div className="space-y-0.5">
-                        <p className="text-xs font-black text-slate-800 leading-tight">{selectedEvent.venue?.name || 'TBA'}</p>
-                        <p className="text-[10px] font-bold text-slate-500">{selectedEvent.venue?.address || 'TBA'}</p>
-                     </div>
-                  </div>
+              {/* Venue & Link Section */}
+              <div className="space-y-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Facility & Location</p>
+                  {selectedEvent.venue?.mapLink && (
+                    <a 
+                      href={selectedEvent.venue.mapLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[9px] font-black text-blue-600 uppercase hover:underline flex items-center gap-1"
+                    >
+                      🔗 View Link
+                    </a>
+                  )}
                 </div>
-                <div className="space-y-3">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Organizer Identity</p>
-                  <div className="flex gap-4">
-                     <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-xl">👤</div>
-                     <div className="space-y-0.5">
-                        <p className="text-xs font-black text-slate-800 leading-tight">{selectedEvent.organizer?.contactPerson || 'TBA'}</p>
-                        <p className="text-[10px] font-bold text-slate-500">📞 {selectedEvent.organizer?.contactPhone || 'TBA'}</p>
+                <div className="flex gap-3 bg-slate-50/50 p-3 rounded-xl border border-slate-50">
+                   <div className="w-8 h-8 bg-white shadow-sm rounded-lg flex items-center justify-center text-sm">🏢</div>
+                   <div className="space-y-0.5">
+                      <p className="text-[11px] font-black text-slate-800">{selectedEvent.venue?.name || 'TBA'}</p>
+                      <p className="text-[10px] font-medium text-slate-500">{selectedEvent.venue?.address || 'TBA'}, {selectedEvent.venue?.city}</p>
+                   </div>
+                </div>
+              </div>
+
+              {/* Organizer Roster */}
+              <div className="space-y-3 pt-4 border-t border-slate-100">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Organizer Roster</p>
+                <div className="grid grid-cols-1 gap-2">
+                   {/* Primary */}
+                   <div className="flex items-center justify-between p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 bg-blue-600 text-white rounded-lg flex items-center justify-center text-xs font-bold">P</div>
+                        <div className="space-y-0.5">
+                          <p className="text-[11px] font-black text-slate-800">{selectedEvent.organizer?.primary?.name || 'TBA'}</p>
+                          <p className="text-[9px] font-bold text-blue-600/70 uppercase">Primary Contact</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                         <p className="text-[10px] font-bold text-slate-700">{selectedEvent.organizer?.primary?.phone}</p>
+                         <p className="text-[9px] font-medium text-slate-400">{selectedEvent.organizer?.primary?.email}</p>
+                      </div>
+                   </div>
+
+                   {/* Secondary 1 */}
+                   {selectedEvent.organizer?.secondary1?.name && (
+                     <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center text-xs font-bold">S1</div>
+                          <div>
+                            <p className="text-[11px] font-black text-slate-800">{selectedEvent.organizer.secondary1.name}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Support Contact</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-[10px] font-bold text-slate-700">{selectedEvent.organizer.secondary1.phone}</p>
+                           <p className="text-[9px] font-medium text-slate-400">{selectedEvent.organizer.secondary1.email}</p>
+                        </div>
                      </div>
-                  </div>
+                   )}
+
+                   {/* Secondary 2 */}
+                   {selectedEvent.organizer?.secondary2?.name && (
+                     <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center text-xs font-bold">S2</div>
+                          <div>
+                            <p className="text-[11px] font-black text-slate-800">{selectedEvent.organizer.secondary2.name}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Support Contact</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-[10px] font-bold text-slate-700">{selectedEvent.organizer.secondary2.phone}</p>
+                           <p className="text-[9px] font-medium text-slate-400">{selectedEvent.organizer.secondary2.email}</p>
+                        </div>
+                     </div>
+                   )}
                 </div>
               </div>
             </div>
 
-            {/* Action Bar - Solid & Fixed */}
-            <div className="p-6 md:p-10 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex flex-col items-center md:items-start">
-                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Fee Structure</p>
-                 <p className="text-lg font-black text-slate-900">
-                   {selectedEvent.isPaid ? `₹${selectedEvent.price}` : 'Complimentary'}
+            {/* Action Bar: Compact */}
+            <div className="p-5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Registration Fee</p>
+                 <p className="text-lg font-black text-slate-900 leading-none">
+                   {selectedEvent.isPaid ? `₹${selectedEvent.price}` : 'FREE'}
                  </p>
               </div>
 
               {isEventRegistered(selectedEvent._id) ? (
-                <div className="w-full md:w-auto px-12 py-4 bg-green-600 text-white rounded-2xl shadow-xl shadow-green-600/20 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3">
-                   <span className="w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_8px_white]"></span>
-                   Registration Confirmed
+                <div className="px-6 py-2.5 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-green-600/10">
+                   <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                   Registered
                 </div>
               ) : (
                 <button 
                   onClick={() => handleRegister(selectedEvent._id)}
                   disabled={registerLoading || !selectedEvent.registration?.isOpen}
-                  className="w-full md:w-auto px-16 py-4 bg-blue-600 hover:bg-slate-900 text-white rounded-2xl shadow-2xl shadow-blue-600/20 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
+                  className="px-8 py-3 bg-blue-600 hover:bg-slate-900 text-white rounded-xl shadow-lg shadow-blue-600/20 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
                 >
                   {registerLoading ? (
-                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                   ) : (
                     <>
-                      <span>{selectedEvent.isPaid ? 'Proceed to Checkout' : 'Secure Your Spot'}</span>
-                      <span className="text-lg">→</span>
+                      <span>{selectedEvent.isPaid ? 'Proceed' : 'Register Now'}</span>
+                      <span>→</span>
                     </>
                   )}
                 </button>

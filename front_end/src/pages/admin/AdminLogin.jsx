@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, Navigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { adminEndpoints } from '../../data/admin'
 import { adminLogin } from '../../store/authSlice'
@@ -14,6 +14,10 @@ const AdminLogin = () => {
   const [apiError, setApiError] = useState('')
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const isAuthenticated = useSelector(state => state.auth.admin.isAuthenticated)
+
+  // Already logged in — skip the login page entirely
+  if (isAuthenticated) return <Navigate to="/admin" replace />
 
   const validateForm = () => {
     const newErrors = {}
@@ -66,22 +70,17 @@ const AdminLogin = () => {
         email: formData.email.trim(),
         password: formData.password
       })
-      console.log(response)
-
       if (response?.success) {
-        // Dispatch Redux action with correct response structure
         dispatch(adminLogin({
           user: response.data.admin,
         }))
-        // Redirect to admin dashboard
-        navigate('/admin')
+        navigate('/admin', { replace: true })
       } else {
         // Handle specific error messages from backend
         const errorMessage = response?.message || 'Login failed. Please try again.'
         setApiError(errorMessage)
       }
     } catch (err) {
-      console.error('Login error:', err)
       let errorMessage = 'Connection error. Please try again.'
 
       // Handle specific error cases
@@ -185,6 +184,12 @@ const AdminLogin = () => {
                     {errors.password}
                   </p>
                 )}
+              </div>
+
+              <div className="flex justify-end mb-6">
+                <Link to="/admin/forgot-password" size="sm" className="text-blue-600 text-xs font-semibold hover:text-blue-500 transition-colors">
+                  Forgot password?
+                </Link>
               </div>
             </div>
 

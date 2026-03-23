@@ -98,7 +98,7 @@ const authenticateMember = async (req, res, next) => {
 
 const authenticateAny = async (req, res, next) => {
   try {
-    const adminToken = req.cookies.token;
+    const adminToken = req.cookies.admintoken || req.cookies.token;
     const memberToken = req.cookies.memberToken;
 
     if (!adminToken && !memberToken) {

@@ -21,14 +21,14 @@ exports.getAllRequestsValidationRules = [
 
 // Get Request Details Validation
 exports.getRequestDetailsValidationRules = [
-  param('userId')
+  param('id')
     .notEmpty().withMessage('User ID is required')
     .isMongoId().withMessage('Invalid User ID format'),
 ];
 
 // Review Request Validation
 exports.reviewRequestValidationRules = [
-  param('userId')
+  param('id')
     .notEmpty().withMessage('User ID is required')
     .isMongoId().withMessage('Invalid User ID format'),
 

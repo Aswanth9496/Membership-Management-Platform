@@ -14,15 +14,12 @@ const AdminDashboard = () => {
   
   // Get admin data from Redux store
   const admin = useSelector(state => state.auth.admin)
-  console.log(admin)
-
+  // Check if admin is authenticated from Redux
+  if (!admin || !admin.isAuthenticated) {
+    navigate('/admin/login')
+    return
+  }
   useEffect(() => {
-    // Check if admin is authenticated from Redux
-    if (!admin.isAuthenticated) {
-      navigate('/admin/login')
-      return
-    }
-
     const fetchDashboardData = async () => {
       try {
         setLoading(true)
@@ -30,9 +27,8 @@ const AdminDashboard = () => {
         
         if (response?.success) {
           setDashboardData(response.data)
-          console.log('Dashboard Data:', response.data) // Debug: Log the actual data structure
         } else {
-          setError('Failed to load dashboavvrd data')
+          setError('Failed to load dashboard data')
         }
       } catch (err) {
         setError('Error connecting to server')
@@ -43,7 +39,7 @@ const AdminDashboard = () => {
     }
 
     fetchDashboardData()
-  }, [navigate, admin.isAuthenticated])
+  }, [navigate, admin?.isAuthenticated])
 
   // Transform API data to dashboard stats
   const getStats = () => {
@@ -52,28 +48,28 @@ const AdminDashboard = () => {
     return [
       { 
         title: 'Total Members', 
-        value: dashboardData.stats.totalMembers.toString(), 
-        change: dashboardData.stats.activeMembers > 0 ? '+12%' : '+0%',
+        value: dashboardData.stats.totalMembers?.toString() || '0', 
+        change: (dashboardData.stats.activeMembers || 0) > 0 ? '+12%' : '+0%',
         color: 'text-blue-600',
         icon: '👥'
       },
       { 
         title: 'Active Members', 
-        value: dashboardData.stats.activeMembers.toString(), 
+        value: dashboardData.stats.activeMembers?.toString() || '0', 
         change: '+8%',
         color: 'text-green-600',
         icon: '✅'
       },
       { 
         title: 'Pending Approval', 
-        value: dashboardData.stats.pendingMembers.toString(), 
+        value: dashboardData.stats.pendingMembers?.toString() || '0', 
         change: '+3%',
         color: 'text-yellow-600',
         icon: '⏳'
       },
       { 
         title: 'Total Events', 
-        value: dashboardData.stats.totalEvents.toString(), 
+        value: dashboardData.stats.totalEvents?.toString() || '0', 
         change: '+15%',
         color: 'text-purple-600',
         icon: '📅'
@@ -101,13 +97,8 @@ const AdminDashboard = () => {
   const getPaginatedActivities = () => {
     // Use the actual API response structure: dashboardData.members
     if (!dashboardData?.members || !Array.isArray(dashboardData.members)) {
-      // Debug: Log what we actually have
-      console.log('Available data keys:', Object.keys(dashboardData || {}))
-      console.log('Dashboard data structure:', dashboardData)
       return []
     }
-    
-    console.log('Members data:', dashboardData.members) // Debug: Log raw members data
     
     // Transform members to activity format
     const activities = dashboardData.members.map(member => ({
@@ -117,13 +108,9 @@ const AdminDashboard = () => {
       icon: '👤'
     }))
     
-    console.log('Transformed activities:', activities) // Debug: Log transformed activities
-    
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     const paginatedActivities = activities.slice(startIndex, endIndex)
-    
-    console.log('Paginated activities:', paginatedActivities) // Debug: Log final paginated result
     
     return paginatedActivities
   }
@@ -300,9 +287,9 @@ const AdminDashboard = () => {
         </div>
 
         {/* Reference Verification Requests - Responsive */}
-        <div className="xl:col-span-4">
+        {/* <div className="xl:col-span-4">
            <AdminReferenceRequests />
-        </div>
+        </div> */}
       </div>
     </div>
   )

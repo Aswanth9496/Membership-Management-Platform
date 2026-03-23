@@ -11,6 +11,14 @@ exports.requestUpdateValidationRules = [
     .optional()
     .isObject().withMessage('Member details must be an object'),
 
+  body('requestedChanges.member.roleInAgency')
+    .optional()
+    .isIn(['Owner', 'Partner', 'Director', 'Manager', 'Authorized Representative', 'Other']).withMessage('Invalid role in agency'),
+
+  body('requestedChanges.member.officeType')
+    .optional()
+    .isIn(['Head Office', 'Branch Office', 'Regional Office', 'Other']).withMessage('Invalid office type'),
+
   body('requestedChanges.member.mobile')
     .optional()
     .matches(/^[6-9]\d{9}$/).withMessage('Mobile number must be a valid 10-digit Indian number'),
@@ -40,9 +48,23 @@ exports.requestUpdateValidationRules = [
     .optional()
     .isString().withMessage('Website must be a string'),
 
+  body('requestedChanges.establishment.officialClassification')
+    .optional()
+    .isIn(['Proprietorship', 'Partnership', 'Private Limited', 'Public Limited', 'LLP', 'Other']).withMessage('Invalid official classification'),
+
+  body('requestedChanges.establishment.businessTypeDescription')
+    .optional()
+    .isString().withMessage('Business type description must be a string')
+    .custom((value, { req }) => {
+      if (req.body.requestedChanges?.establishment?.businessType === 'Other' && (!value || value.trim() === '')) {
+        throw new Error('Business type description is required when business type is Other');
+      }
+      return true;
+    }),
+
   body('requestedChanges.establishment.organizationalStatus')
     .optional()
-    .isString().withMessage('Organizational status must be a string'),
+    .isIn(['Active', 'Inactive', 'Under Process', 'Closed']).withMessage('Invalid organizational status'),
 
   body('requestedChanges.partner')
     .optional()

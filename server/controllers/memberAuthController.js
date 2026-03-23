@@ -7,6 +7,7 @@ const login = async (req, res) => {
   const { email, password } = req.body;
 
   const result = await loginMember(email, password);
+  console.log(result);
 
   // Set httpOnly cookie
   res.cookie('memberToken', result.token, {

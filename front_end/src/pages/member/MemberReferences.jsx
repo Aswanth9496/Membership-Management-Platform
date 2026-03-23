@@ -33,6 +33,11 @@ const MemberReferences = () => {
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState('all') 
     const [processingId, setProcessingId] = useState(null)
+    const [showRejectModal, setShowRejectModal] = useState(false)
+    const [selectedRequestId, setSelectedRequestId] = useState(null)
+    const [rejectReason, setRejectReason] = useState('')
+    const [showReapplyModal, setShowReapplyModal] = useState(false)
+    const [reapplyRequestId, setReapplyRequestId] = useState(null)
 
     const fetchData = async () => {
         setLoading(true)
@@ -62,19 +67,62 @@ const MemberReferences = () => {
         fetchData()
     }, [])
 
-    const handleAction = async (requestId, action) => {
+    const handleAction = async (requestId, action, remarks = '') => {
         setProcessingId(requestId)
         try {
             const response = action === 'confirm' 
                 ? await memberEndpoints.references.confirm(requestId)
-                : await memberEndpoints.references.reject(requestId)
+                : await memberEndpoints.references.reject(requestId, remarks)
             
             if (response.success) {
+                if (action === 'reject') {
+                    setShowRejectModal(false)
+                    setRejectReason('')
+                    setSelectedRequestId(null)
+                }
                 // Refresh data
                 await fetchData()
             }
         } catch (err) {
             console.error(`Failed to ${action} reference:`, err)
+        } finally {
+            setProcessingId(null)
+        }
+    }
+
+    const openRejectModal = (requestId) => {
+        setSelectedRequestId(requestId)
+        setRejectReason('')
+        setShowRejectModal(true)
+    }
+
+    const closeRejectModal = () => {
+        setShowRejectModal(false)
+        setRejectReason('')
+        setSelectedRequestId(null)
+    }
+
+    const openReapplyModal = (requestId) => {
+        setReapplyRequestId(requestId)
+        setShowReapplyModal(true)
+    }
+
+    const closeReapplyModal = () => {
+        setShowReapplyModal(false)
+        setReapplyRequestId(null)
+    }
+
+    const handleReapply = async () => {
+        if (!reapplyRequestId) return
+        setProcessingId(reapplyRequestId)
+        try {
+            const response = await memberEndpoints.references.reapply(reapplyRequestId)
+            if (response.success) {
+                closeReapplyModal()
+                await fetchData()
+            }
+        } catch (err) {
+            console.error('Failed to reapply reference:', err)
         } finally {
             setProcessingId(null)
         }
@@ -90,8 +138,9 @@ const MemberReferences = () => {
     }
 
     return (
-        <div className="space-y-10 animate-fadeUp">
-            {/* Header */}
+        <>
+            <div className="space-y-10 animate-fadeUp">
+                {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-black text-slate-800 tracking-tight">Reference Dashboard</h2>
@@ -149,7 +198,7 @@ const MemberReferences = () => {
                                         {processingId === req._id ? '...' : 'Approve'}
                                     </button>
                                     <button 
-                                        onClick={() => handleAction(req._id, 'reject')}
+                                        onClick={() => openRejectModal(req._id)}
                                         disabled={processingId === req._id}
                                         className="flex-1 py-3 bg-white border border-slate-100 text-slate-400 hover:text-red-500 hover:border-red-100 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50"
                                     >
@@ -234,11 +283,31 @@ const MemberReferences = () => {
                                             <p className="text-[10px] text-slate-400 font-medium truncate max-w-[200px]">{sub.referencedMemberId?.establishment?.name}</p>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col sm:items-end gap-1.5">
-                                        <StatusBadge status={sub.status} />
-                                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
-                                            Requested {new Date(sub.createdAt).toLocaleDateString()}
-                                        </p>
+                                    <div className="flex flex-col sm:items-end gap-2 text-right">
+                                        <div className="flex flex-col items-end gap-1.5">
+                                            <StatusBadge status={sub.status} />
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                                Requested {new Date(sub.createdAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        
+                                        {sub.status === 'rejected' && (
+                                            <div className="mt-2 text-right flex flex-col items-end gap-2">
+                                                {sub.remarks && (
+                                                    <div className="bg-red-50 text-red-600 text-[10px] px-3 py-2 rounded-lg border border-red-100 max-w-xs text-left">
+                                                        <span className="font-bold uppercase tracking-wider block mb-0.5">Reason:</span>
+                                                        {sub.remarks}
+                                                    </div>
+                                                )}
+                                                <button 
+                                                    onClick={() => openReapplyModal(sub._id)}
+                                                    className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors border border-blue-100 hover:border-blue-600 shadow-sm inline-flex items-center gap-1.5"
+                                                >
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                                    Apply Again
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -261,7 +330,98 @@ const MemberReferences = () => {
                     </p>
                 </div>
             )}
-        </div>
+
+            </div>
+
+            {/* Reject Modal */}
+            {showRejectModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-fadeUp">
+                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                            <h3 className="text-base font-bold text-slate-800">Reject Reference</h3>
+                            <button 
+                                onClick={closeRejectModal}
+                                className="text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        
+                        <div className="p-6">
+                            <p className="text-sm text-slate-600 mb-4">
+                                Please provide a reason for rejecting this reference request.
+                            </p>
+                            <textarea
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                placeholder="Reason for rejection..."
+                                className="w-full h-28 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 resize-none transition-all"
+                            ></textarea>
+                        </div>
+
+                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 rounded-b-2xl">
+                            <button 
+                                onClick={closeRejectModal}
+                                className="px-5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 hover:text-slate-900 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={() => handleAction(selectedRequestId, 'reject', rejectReason)}
+                                disabled={!rejectReason.trim() || processingId === selectedRequestId}
+                                className="px-5 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-colors shadow-sm"
+                            >
+                                {processingId === selectedRequestId ? 'Processing...' : 'Reject'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reapply Modal */}
+            {showReapplyModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-fadeUp">
+                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-blue-50/50">
+                            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <span className="text-blue-600">↻</span> Reapply Reference
+                            </h3>
+                            <button 
+                                onClick={closeReapplyModal}
+                                className="text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        
+                        <div className="p-6">
+                            <p className="text-sm text-slate-600 mb-2">
+                                Have you made the requested changes and resolved the issue that caused the rejection?
+                            </p>
+                            <p className="text-xs text-slate-400 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-4 leading-relaxed">
+                                By proceeding, your application status will be reset to pending. The verifier will be able to review your request again.
+                            </p>
+                        </div>
+
+                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 rounded-b-2xl">
+                            <button 
+                                onClick={closeReapplyModal}
+                                className="px-5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 hover:text-slate-900 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleReapply}
+                                disabled={processingId === reapplyRequestId}
+                                className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors shadow-sm"
+                            >
+                                {processingId === reapplyRequestId ? 'Processing...' : 'Yes, Reapply Now'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     )
 }
 

@@ -9,8 +9,7 @@ const AdminSidebar = () => {
     { icon: '📅', label: 'Events', path: '/admin/events' },
     { icon: '📝', label: 'Profile Updates', path: '/admin/profile-updates' },
     { icon: '💰', label: 'Transactions', path: '/admin/transactions' },
-    { icon: '📈', label: 'Analytics', path: '/admin/analytics' },
-    { icon: '⚙️', label: 'Settings', path: '/admin/settings' },
+   
   ]
 
   return (
@@ -35,10 +34,11 @@ const AdminSidebar = () => {
             <li key={item.path}>
               <NavLink
                 to={item.path}
+                end={item.path === '/admin'}
                 className={({ isActive }) => `
                   flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200
                   ${isActive 
-                    ? 'bg-sky-50 text-sky-600 border-l-4 border-sky-600' 
+                    ? 'bg-sky-50 text-sky-600 shadow-sm' 
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }
                 `}
@@ -54,16 +54,16 @@ const AdminSidebar = () => {
       {/* User Section */}
       <div className="p-4 border-t border-gray-100">
         <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
-            {admin.user?.profilePic?.url ? (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white text-sm font-bold overflow-hidden shadow-sm">
+            {admin?.user?.profilePic?.url ? (
               <img src={admin.user.profilePic.url} alt={admin.user?.fullName} className="w-full h-full object-cover" />
             ) : (
-              <span>{admin.user?.fullName?.charAt(0).toUpperCase() || 'A'}</span>
+              <span>{admin?.user?.fullName?.charAt(0).toUpperCase() || 'A'}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-800 truncate">{admin.user?.fullName || 'Admin User'}</p>
-            <p className="text-xs text-gray-500 truncate">{admin.user?.email || 'admin@taskcommunity.com'}</p>
+            <p className="text-sm font-semibold text-gray-800 truncate">{admin?.user?.fullName || 'Admin User'}</p>
+            <p className="text-xs text-gray-400 truncate font-medium">{admin?.user?.email || 'admin@portal.com'}</p>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ const router = express.Router();
 const { register, login, logout, getProfile, getDashboard, getAllPayments } = require('../controllers/adminController');
 const { forgotPassword, verifyOTP, resetPasswordController } = require('../controllers/forgotPasswordController');
 const { getPendingApprovalsController, getPendingApprovalsByRoleController, updateMemberApprovalController, deleteUserController, getAllMembersController, updateMemberStatusController, toggleMemberBlockStatusController, reviewProfileUpdateController, getProfileUpdateRequestsController } = require('../controllers/memberController');
+const { importMembersController } = require('../controllers/bulkImportController');
 const { adminRegisterValidationRules, adminLoginValidationRules, validate } = require('../validators/adminValidator');
 const { forgotPasswordValidationRules, verifyOTPValidationRules, resetPasswordValidationRules, validate: validateForgotPassword } = require('../validators/forgotPasswordValidator');
 const { approvalValidationRules, validate: validateApproval } = require('../validators/memberValidator');
@@ -122,13 +123,12 @@ router.put('/members/:id/block', authenticateAdmin, asyncHandler(toggleMemberBlo
 // Delete User Profile - Remove member entirely
 router.delete('/members/:id', authenticateAdmin, asyncHandler(deleteUserController));
 
-// Review Profile Update Request
-router.put('/profile-updates/:id/review', authenticateAdmin, asyncHandler(reviewProfileUpdateController));
-
-// Get All Profile Update Requests
-router.get('/profile-updates', authenticateAdmin, asyncHandler(getProfileUpdateRequestsController));
+// Profile update routes moved to adminProfileRoutes.js
 
 // Get All Payments
 router.get('/payments', authenticateAdmin, asyncHandler(getAllPayments));
+
+// Bulk Import Members (admin only, one-time or recurring)
+router.post('/import-members', authenticateAdmin, asyncHandler(importMembersController));
 
 module.exports = router;

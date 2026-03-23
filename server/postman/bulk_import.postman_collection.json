@@ -1,0 +1,55 @@
+{
+  "info": {
+    "name": "Bulk Member Import",
+    "_postman_id": "bulk-import-collection-001",
+    "description": "One-time bulk import of existing members via JSON array.\n\nSTEPS:\n1. Run 'Admin Login' first to set the auth cookie.\n2. Paste your members array into 'Import Members' request body.\n3. Send.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Admin Login (get cookie)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "login"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"your-admin@email.com\",\n  \"password\": \"your-admin-password\"\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      }
+    },
+    {
+      "name": "2. Import Members",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/import-members",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "import-members"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"members\": [\n    {\n      \"email\": \"member@example.com\",\n      \"password\": \"Member@1234\",\n      \"membershipNumber\": \"MEM20230001\",\n      \"establishment\": {\n        \"name\": \"Example Travels\",\n        \"tradeName\": \"Example Tours\",\n        \"yearOfEstablishment\": 2010,\n        \"officialClassification\": \"Private Limited\",\n        \"businessType\": \"Service\",\n        \"officialEmail\": \"info@exampletravels.com\",\n        \"gstRegistered\": false\n      },\n      \"location\": {\n        \"state\": \"Kerala\",\n        \"district\": \"Wayanad\",\n        \"region\": \"Wayanad\",\n        \"city\": \"Kalpetta\",\n        \"pinCode\": \"673577\",\n        \"registeredAddress\": \"123 Main St, Kalpetta\"\n      },\n      \"member\": {\n        \"fullName\": \"John Doe\",\n        \"mobile\": \"9876543210\",\n        \"officeType\": \"Head Office\",\n        \"roleInAgency\": \"Owner\",\n        \"dateOfBirth\": \"1985-06-15\"\n      },\n      \"status\": \"approved\"\n    }\n  ]\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      }
+    }
+  ]
+}

@@ -43,10 +43,8 @@ const login = async (req, res) => {
 
 // Logout - Clear cookie
 const logout = async (req, res) => {
-  res.cookie('token', '', {
-    httpOnly: true,
-    expires: new Date(0), // Expire immediately
-  });
+  res.clearCookie('admintoken');
+  res.clearCookie('token');
 
   successResponse(
     res,

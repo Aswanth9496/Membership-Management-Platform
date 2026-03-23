@@ -24,17 +24,26 @@ if (process.env.JWT_SECRET === 'your_super_secret_jwt_key_change_this_in_product
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: false,
+}));
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     credentials: true,
     optionsSuccessStatus: 200
 }));
 
+// app.set('trust proxy', 1);
+
 // const limiter = rateLimit({
-//     windowMs: 15 * 60 * 1000,
-//     max: 100,
-//     message: 'Too many requests from this IP, please try again later.'
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 100, // Limit each IP to 100 requests per windowMs
+//     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+//     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+//     message: {
+//         success: false,
+//         message: 'Too many requests from this IP, please try again in 15 minutes.'
+//     }
 // });
 // app.use('/api/', limiter);
 
@@ -90,7 +99,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/events', eventRoutes);
 app.use('/api/member', memberAuthRoutes);
 app.use('/api/member/profile', memberProfileRoutes);
-app.use('/api/admin/profile-change-requests', adminProfileRoutes);
+app.use('/api/admin/profile-updates', adminProfileRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/member/events', memberEventRoutes);
 app.use('/api/references', referenceRoutes);

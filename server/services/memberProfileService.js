@@ -56,6 +56,7 @@ const requestProfileUpdate = async (memberId, requestedChanges) => {
       establishment: member.establishment,
       partner: member.partner,
       staff: member.staff,
+      documents: member.documents || {},
     };
 
     const changedFields = getChangedFields(currentProfile, requestedChanges);
@@ -71,6 +72,14 @@ const requestProfileUpdate = async (memberId, requestedChanges) => {
     });
 
     await newRequest.save();
+    
+    // Update User document to reflect pending request
+    member.profileChangeRequest = {
+      pending: true,
+      requestedAt: new Date(),
+      status: 'pending'
+    };
+    await member.save();
 
     const emailContent = `
       <!DOCTYPE html>
@@ -176,6 +185,14 @@ const cancelChangeRequest = async (memberId) => {
 
     await ProfileUpdateRequest.findByIdAndDelete(request._id);
 
+    // Update User document to clear pending flag
+    const member = await User.findById(memberId);
+    if (member) {
+      member.profileChangeRequest.pending = false;
+      member.profileChangeRequest.status = 'cancelled';
+      await member.save();
+    }
+
     return {
       message: 'Request cancelled successfully',
       cancelledAt: new Date(),
@@ -239,10 +256,23 @@ const reviewProfileUpdate = async (requestId, action, adminRole, adminName, reje
 
       // Assuming requestedData matches root structure (member, location, establishment, etc)
       flattenAndApply(request.requestedData, member);
+      
+      // Update pending status
+      member.profileChangeRequest.pending = false;
+      member.profileChangeRequest.status = 'approved';
+      member.profileChangeRequest.reviewedAt = new Date();
+      
       await member.save();
     } else {
       request.status = 'rejected';
       request.rejectionReason = rejectionReason;
+      
+      // Update User document
+      member.profileChangeRequest.pending = false;
+      member.profileChangeRequest.status = 'rejected';
+      member.profileChangeRequest.rejectionReason = rejectionReason;
+      member.profileChangeRequest.reviewedAt = new Date();
+      await member.save();
     }
 
     request.reviewedAt = new Date();
@@ -270,10 +300,64 @@ const reviewProfileUpdate = async (requestId, action, adminRole, adminName, reje
   }
 };
 
+// 6. Direct Profile Update
+const directProfileUpdate = async (memberId, requestedChanges) => {
+  try {
+    const member = await User.findById(memberId);
+    if (!member) throw new ApiError(404, 'Member not found');
+    
+    if (!['submitted', 'rejected'].includes(member.status)) {
+      throw new ApiError(400, 'Direct updates are only allowed for submitted or rejected profiles.');
+    }
+
+    if (!requestedChanges || Object.keys(requestedChanges).length === 0) {
+      throw new ApiError(400, 'No changes provided.');
+    }
+
+    // Merge requested data deeply into member profile
+    const flattenAndApply = (source, target) => {
+      for (const key in source) {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) && !(source[key] instanceof Date)) {
+          if (!target[key]) target[key] = {};
+          flattenAndApply(source[key], target[key]);
+        } else {
+          target[key] = source[key];
+        }
+      }
+    };
+
+    flattenAndApply(requestedChanges, member);
+    
+    member.status = 'submitted';
+    member.rejectionReason = undefined;
+
+    if (member.approvals) {
+        // Reset admin approvals to pending (undefined)
+        Object.keys(member.approvals).forEach(role => {
+            member.approvals[role] = undefined;
+        });
+    }
+
+    // Since they updated directly, remove any pending request metadata
+    member.profileChangeRequest = undefined;
+
+    await member.save();
+
+    // Clean up any pending profile change requests
+    await ProfileUpdateRequest.deleteMany({ userId: memberId, status: 'pending' });
+
+    return {
+      message: 'Profile updated directly and resubmitted successfully.',
+      status: member.status
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   requestProfileUpdate,
   getChangeRequestStatus,
   cancelChangeRequest,
-  getAllProfileUpdateRequests,
-  reviewProfileUpdate
+  directProfileUpdate,
 };

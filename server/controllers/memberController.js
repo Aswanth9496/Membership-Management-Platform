@@ -120,7 +120,7 @@ const deleteUserController = async (req, res) => {
 const getAllMembersController = async (req, res) => {
   // Get pagination params
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
+  const limit = parseInt(req.query.limit) || 30;
   
   // Get filter params
   const status = req.query.status; // 'submitted', 'verified', 'payment_completed', 'approved', 'rejected'
@@ -210,35 +210,6 @@ const toggleMemberBlockStatusController = async (req, res) => {
   );
 };
 
-const { reviewProfileUpdate, getAllProfileUpdateRequests } = require('../services/memberProfileService');
-
-// Get All Profile Update Requests
-const getProfileUpdateRequestsController = async (req, res) => {
-  const data = await getAllProfileUpdateRequests();
-  successResponse(res, data, 'Profile update requests retrieved successfully');
-};
-
-// Review Profile Update Request
-const reviewProfileUpdateController = async (req, res) => {
-  const { id } = req.params;
-  const { action, rejectionReason } = req.body;
-
-  if (!['approve', 'reject'].includes(action)) {
-    throw new ApiError(400, 'Invalid action. Expected approve or reject.');
-  }
-
-  const adminRole = req.admin.role;
-  const adminName = req.admin.name;
-
-  const data = await reviewProfileUpdate(id, action, adminRole, adminName, rejectionReason);
-
-  successResponse(
-    res,
-    data,
-    data.message
-  );
-};
-
 module.exports = {
   getPendingApprovalsController,
   getPendingApprovalsByRoleController,
@@ -247,6 +218,4 @@ module.exports = {
   getAllMembersController,
   updateMemberStatusController,
   toggleMemberBlockStatusController,
-  reviewProfileUpdateController,
-  getProfileUpdateRequestsController,
 };

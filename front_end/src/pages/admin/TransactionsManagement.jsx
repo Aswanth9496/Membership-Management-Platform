@@ -9,6 +9,7 @@ const TransactionsManagement = () => {
   const [error, setError] = useState(null)
   const [filterStatus, setFilterStatus] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   
   const navigate = useNavigate()
   const admin = useSelector(state => state.auth.admin)
@@ -54,10 +55,9 @@ const TransactionsManagement = () => {
     try {
       setLoading(true)
       const response = await adminEndpoints.payments.getAll()
-      
       if (response && response.success) {
         // If API returns data, use it; otherwise, use dummy data as fallback
-        setTransactions(response.data.length > 0 ? response.data : dummyTransactions)
+        setTransactions(Array.isArray(response.data) && response.data.length > 0 ? response.data : dummyTransactions)
       } else {
         // Set dummy data even on error to fulfill user request
         setTransactions(dummyTransactions)
@@ -70,20 +70,34 @@ const TransactionsManagement = () => {
     }
   }
 
+  // Handle Search Debouncing
   useEffect(() => {
-    if (!admin.isAuthenticated) {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  useEffect(() => {
+    if (!admin || !admin.isAuthenticated) {
       navigate('/admin/login')
       return
     }
     fetchTransactions()
-  }, [navigate, admin.isAuthenticated])
+  }, [navigate, admin?.isAuthenticated])
 
   const filteredTransactions = transactions.filter(txn => {
-    const matchesStatus = filterStatus === 'all' || txn.status.toLowerCase() === filterStatus.toLowerCase()
+    const statusStr = txn.status || txn.paymentStatus || ''
+    const matchesStatus = filterStatus === 'all' || statusStr.toLowerCase() === filterStatus.toLowerCase()
+    
+    const searchLow = debouncedSearchTerm.toLowerCase()
     const matchesSearch = 
-      (txn.description && txn.description.toLowerCase().includes(searchTerm.toLowerCase())) || 
-      (txn.memberInfo?.name && txn.memberInfo.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (txn.transactionId && txn.transactionId.toLowerCase().includes(searchTerm.toLowerCase()))
+      (txn.description && txn.description.toLowerCase().includes(searchLow)) || 
+      (txn.memberInfo?.name && txn.memberInfo.name.toLowerCase().includes(searchLow)) ||
+      (txn.participantName && txn.participantName.toLowerCase().includes(searchLow)) ||
+      (txn.transactionId && txn.transactionId.toLowerCase().includes(searchLow)) ||
+      (txn.memberInfo?.email && txn.memberInfo.email.toLowerCase().includes(searchLow))
+      
     return matchesStatus && matchesSearch
   })
 
@@ -162,7 +176,7 @@ const TransactionsManagement = () => {
                 filteredTransactions.map((txn) => (
                   <tr key={txn.id || txn._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">{txn.transactionId}</div>
+                      <div className="text-sm font-semibold text-gray-900">{txn.transactionId || 'N/A'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{txn.description || 'General Payment'}</div>
@@ -174,7 +188,7 @@ const TransactionsManagement = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-gray-900">₹{txn.amount}</div>
+                      <div className="text-sm font-bold text-gray-900">₹{txn.amount || txn.amountPaid || 0}</div>
                       <div className="text-[10px] text-gray-500">{txn.paymentMethod || 'Razorpay'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -184,11 +198,13 @@ const TransactionsManagement = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-600">
-                        {new Date(txn.date || txn.paymentDate).toLocaleDateString()}
+                        {txn.date || txn.paymentDate ? new Date(txn.date || txn.paymentDate).toLocaleDateString() : 'N/A'}
                       </div>
-                      <div className="text-[10px] text-gray-400">
-                        {new Date(txn.date || txn.paymentDate).toLocaleTimeString()}
-                      </div>
+                      {(txn.date || txn.paymentDate) && (
+                        <div className="text-[10px] text-gray-400">
+                          {new Date(txn.date || txn.paymentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -206,7 +222,7 @@ const TransactionsManagement = () => {
 
       <div className="mt-6 flex items-center justify-between text-sm text-gray-500 border-t border-gray-100 pt-4">
         <div>Showing {filteredTransactions.length} transactions</div>
-        {transactions.some(t => t.id.startsWith('dummy-')) && (
+        {transactions.some(t => t.id?.toString().startsWith('dummy-')) && (
           <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold">
             💡 Showing demonstration data
           </div>

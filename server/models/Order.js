@@ -61,8 +61,6 @@ const OrderSchema = new mongoose.Schema({
 });
 
 // Indexing for faster lookups
-OrderSchema.index({ orderNumber: 1 });
-OrderSchema.index({ razorpayOrderId: 1 });
 OrderSchema.index({ member: 1 });
 
 module.exports = mongoose.model('Order', OrderSchema);

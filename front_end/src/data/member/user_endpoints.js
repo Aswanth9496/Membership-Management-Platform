@@ -16,7 +16,6 @@ export const memberEndpoints = {
     getProfile: () => api.get('/api/member/profile'),
   },
 
-  // 📝 Registration Routes (use authApi - no credentials initially)
   registration: {
     register: (memberData) => authApi.post('/api/register', memberData, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -25,14 +24,22 @@ export const memberEndpoints = {
     uploadDocument: (formData) => authApi.post('/api/register/documents/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
+    sendOTP: (email) => authApi.post('/api/register/send-otp', { email }),
+    verifyOTP: (email, otp) => authApi.post('/api/register/verify-otp', { email, otp }),
   },
 
   // 🔄 Profile Update Management (use api - with credentials)
   profileUpdates: {
-    requestUpdate: (updateData) => api.post('/api/member/profile/request-update', updateData),
+    requestUpdate: (updateData) => api.post('/api/member/profile/request-update', updateData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    directUpdate: (updateData) => api.patch('/api/member/profile/direct-update', updateData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
     getStatus: () => api.get('/api/member/profile/change-status'),
     cancelRequest: () => api.delete('/api/member/profile/cancel-request'),
     downloadCertificate: () => api.get('/api/member/profile/certificate/download'),
+    getCertificateBlob: (preview = false) => api.get(`/api/member/profile/certificate/download${preview ? '?preview=true' : ''}`, { responseType: 'blob' }),
     uploadMissingDocument: (formData) => api.post('/api/member/profile/documents/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
@@ -63,6 +70,7 @@ export const memberEndpoints = {
     getMySubmissions: () => api.get('/api/references/my-submissions'),
     confirm: (requestId, remarks) => api.patch(`/api/references/${requestId}/confirm`, { remarks }),
     reject: (requestId, remarks) => api.patch(`/api/references/${requestId}/reject`, { remarks }),
+    reapply: (requestId) => api.patch(`/api/references/${requestId}/reapply`),
   },
 };
 

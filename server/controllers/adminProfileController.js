@@ -18,20 +18,20 @@ const getAllRequests = async (req, res) => {
 
 // Get Detailed Profile Change Request
 const getRequestDetails = async (req, res) => {
-  const { userId } = req.params;
+  const { id } = req.params;
 
-  const result = await getProfileChangeRequestDetails(userId);
+  const result = await getProfileChangeRequestDetails(id);
   
   successResponse(res, result, 'Profile change request details retrieved successfully');
 };
 
 // Review Profile Change Request (Approve/Reject)
 const reviewRequest = async (req, res) => {
-  const { userId } = req.params;
+  const { id } = req.params;
   const adminId = req.admin._id;
   const { action, remarks } = req.body;
 
-  const result = await reviewProfileChangeRequest(userId, adminId, action, remarks);
+  const result = await reviewProfileChangeRequest(id, adminId, action, remarks);
   
   successResponse(res, result, result.message);
 };

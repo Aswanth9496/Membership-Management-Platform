@@ -1,10 +1,31 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
+import { memberEndpoints } from '../../data/member'
 
 const MemberSidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation()
   const { user } = useSelector(state => state.auth.member)
+  const [pendingRefCount, setPendingRefCount] = useState(0)
+
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const response = await memberEndpoints.references.getMyRequests()
+        if (response.success) {
+          // Filter for pending status just in case
+          const pending = response.data.requests.filter(r => r.status === 'pending')
+          setPendingRefCount(pending.length)
+        }
+      } catch (err) {
+        console.error('Failed to fetch pending reference count:', err)
+      }
+    }
+
+    if (user) {
+      fetchPendingCount()
+    }
+  }, [user])
   
   const menuGroups = [
     {
@@ -27,8 +48,12 @@ const MemberSidebar = ({ isOpen, setIsOpen }) => {
       title: 'Engagement',
       items: [
         { icon: '📅', label: 'Events', path: '/member/events' },
-       // { icon: '📢', label: 'Notices', path: '/member/notices', badge: 2 },
-        { icon: '🤝', label: 'References', path: '/member/references' },
+        // { icon: '📢', label: 'Notices', path: '/member/notices', badge: 2 },
+        { 
+          icon: '🤝', 
+          label: pendingRefCount > 0 ? `References (${pendingRefCount})` : 'References', 
+          path: '/member/references' 
+        },
       ]
     }
   ]

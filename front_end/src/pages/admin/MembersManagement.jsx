@@ -9,12 +9,13 @@ const MembersManagement = () => {
   const [error, setError] = useState(null)
   const [selectedStatus, setSelectedStatus] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
   const [totalMembers, setTotalMembers] = useState(0)
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState('desc')
-  const [limit, setLimit] = useState(10)
+  const [limit, setLimit] = useState(30)
   const [selectedMember, setSelectedMember] = useState(null)
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [showBlockModal, setShowBlockModal] = useState(false)
@@ -22,7 +23,7 @@ const MembersManagement = () => {
   const [statusUpdateData, setStatusUpdateData] = useState({})
   const [actionLoading, setActionLoading] = useState(false)
   const [approvalRemarks, setApprovalRemarks] = useState('')
-  
+
   const navigate = useNavigate()
   const admin = useSelector(state => state.auth.admin)
 
@@ -65,10 +66,10 @@ const MembersManagement = () => {
     try {
       setLoading(true)
       setError(null)
-      
+
       const filters = {
         status: selectedStatus || undefined,
-        search: searchTerm || undefined,
+        search: debouncedSearchTerm || undefined,
         page: currentPage,
         limit,
         sortBy,
@@ -76,7 +77,7 @@ const MembersManagement = () => {
       }
 
       const response = await adminEndpoints.members.getAll(filters)
-      
+
       if (response?.success) {
         setMembers(response.data.members)
         setTotalPages(response.data.pagination.totalPages)
@@ -102,7 +103,7 @@ const MembersManagement = () => {
         action,
         remarks: approvalRemarks || (action === 'approve' ? 'Approved' : 'Rejected')
       })
-      
+
       if (response?.success) {
         await fetchMembers()
         setShowStatusModal(false)
@@ -123,7 +124,7 @@ const MembersManagement = () => {
     try {
       setActionLoading(true)
       const response = await adminEndpoints.members.updateStatus(selectedMember._id, statusUpdateData)
-      
+
       if (response?.success) {
         await fetchMembers()
         setShowStatusModal(false)
@@ -143,7 +144,7 @@ const MembersManagement = () => {
       setActionLoading(true)
       const action = member.isActive ? 'block' : 'unblock'
       const response = await adminEndpoints.members.toggleBlockStatus(member._id, { action })
-      
+
       if (response?.success) {
         // Refresh members list
         await fetchMembers()
@@ -162,7 +163,7 @@ const MembersManagement = () => {
     try {
       setActionLoading(true)
       const response = await adminEndpoints.members.deleteMember(memberId)
-      
+
       if (response?.success) {
         await fetchMembers()
         setShowDeleteModal(false)
@@ -211,22 +212,31 @@ const MembersManagement = () => {
     setCurrentPage(1)
   }
 
+  // Search debouncing logic
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+      setCurrentPage(1)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
   // Check admin authentication
   useEffect(() => {
-    if (!admin.isAuthenticated) {
+    if (!admin || !admin.isAuthenticated) {
       navigate('/admin/login')
       return
     }
 
     fetchMembers()
-  }, [navigate, admin.isAuthenticated])
+  }, [navigate, admin?.isAuthenticated])
 
   // Refetch when filters change
   useEffect(() => {
     fetchMembers()
-  }, [selectedStatus, searchTerm, currentPage, sortBy, sortOrder, limit])
+  }, [selectedStatus, debouncedSearchTerm, currentPage, sortBy, sortOrder, limit])
 
-  if (!admin.isAuthenticated) {
+  if (!admin || !admin.isAuthenticated) {
     return null
   }
 
@@ -248,8 +258,8 @@ const MembersManagement = () => {
       <div className="p-4 sm:p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <p className="text-red-800 font-medium">{error}</p>
-          <button 
-            onClick={fetchMembers} 
+          <button
+            onClick={fetchMembers}
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Retry
@@ -260,103 +270,100 @@ const MembersManagement = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden">
       <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Members Management</h1>
-          <p className="text-gray-600">Manage and monitor all member applications</p>
-        </div>
+       
 
         {/* Filters Section */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Application Status
-              </label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => {
-                  setSelectedStatus(e.target.value)
-                  handleFilterChange()
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 mb-4 shadow-sm flex flex-col gap-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            
+            {/* Left side: Status and Search */}
+            <div className="flex-1 flex flex-col sm:flex-row gap-3">
+              {/* Search */}
+              <div className="w-full sm:w-72 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    handleFilterChange()
+                  }}
+                  placeholder="Search members..."
+                  className="w-full pl-9 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all placeholder-gray-400"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div className="w-full sm:w-48">
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value)
+                    handleFilterChange()
+                  }}
+                  className="w-full px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all cursor-pointer text-gray-700"
+                >
+                  {statusOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Right side: Sort and Actions */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold whitespace-nowrap hidden sm:inline-block">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value)
+                    handleFilterChange()
+                  }}
+                  className="w-28 px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all cursor-pointer text-gray-700"
+                >
+                  <option value="createdAt">Date</option>
+                  <option value="name">Name</option>
+                  <option value="email">Email</option>
+                </select>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => {
+                    setSortOrder(e.target.value)
+                    handleFilterChange()
+                  }}
+                  className="w-24 px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all cursor-pointer text-gray-700"
+                >
+                  <option value="desc">Newest</option>
+                  <option value="asc">Oldest</option>
+                </select>
+              </div>
+
+              <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+
+              <button
+                onClick={resetFilters}
+                className="w-full sm:w-auto px-3 py-1.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 hover:text-gray-900 transition-colors flex items-center justify-center gap-1.5"
+                title="Reset Filters"
               >
-                {statusOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="sm:hidden lg:inline">Reset</span>
+              </button>
 
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search Members
-              </label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value)
-                  handleFilterChange()
-                }}
-                placeholder="Search by name, email, or membership number..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Sort By */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sort By
-              </label>
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value)
-                  handleFilterChange()
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-              >
-                <option value="createdAt">Date Created</option>
-                <option value="name">Name</option>
-                <option value="email">Email</option>
-              </select>
-            </div>
-
-            {/* Sort Order */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sort Order
-              </label>
-              <select
-                value={sortOrder}
-                onChange={(e) => {
-                  setSortOrder(e.target.value)
-                  handleFilterChange()
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-              >
-                <option value="desc">Newest First</option>
-                <option value="asc">Oldest First</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Filter Actions */}
-          <div className="flex flex-wrap gap-3 mt-4">
-            <button
-              onClick={resetFilters}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Reset Filters
-            </button>
-            <div className="text-sm text-gray-600 flex items-center">
-              Showing {members.length} of {totalMembers} members
+              <div className="bg-sky-50 text-sky-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap border border-sky-100 hidden sm:block">
+                {members.length} / {totalMembers}
+              </div>
             </div>
           </div>
         </div>
@@ -364,7 +371,7 @@ const MembersManagement = () => {
         {/* Members Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
           <div className="overflow-x-auto flex-1">
-            <div className="max-h-[50vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="max-h-[65vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
@@ -396,7 +403,7 @@ const MembersManagement = () => {
                     <tr key={member._id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {member.establishment.name || 'N/A'}
+                          {member.establishment?.name || 'N/A'}
                         </div>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
@@ -406,7 +413,7 @@ const MembersManagement = () => {
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-600">
-                          {member.member.mobile || 'N/A'}
+                          {member.member?.mobile || 'N/A'}
                         </div>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
@@ -418,14 +425,13 @@ const MembersManagement = () => {
                         <div className="flex -space-x-2 overflow-hidden">
                           {member.referenceStatuses && member.referenceStatuses.length > 0 ? (
                             member.referenceStatuses.map((ref, idx) => (
-                              <div 
-                                key={ref.id || idx} 
+                              <div
+                                key={ref.id || idx}
                                 title={`${ref.name}: ${ref.status}`}
-                                className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold uppercase ${
-                                  ref.status === 'confirmed' ? 'bg-emerald-500 text-white' : 
-                                  ref.status === 'rejected' ? 'bg-red-500 text-white' : 
-                                  'bg-amber-500 text-white'
-                                }`}
+                                className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold uppercase ${ref.status === 'confirmed' ? 'bg-emerald-500 text-white' :
+                                    ref.status === 'rejected' ? 'bg-red-500 text-white' :
+                                      'bg-amber-500 text-white'
+                                    }`}
                               >
                                 {ref.name?.charAt(0)}
                               </div>
@@ -436,11 +442,10 @@ const MembersManagement = () => {
                         </div>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          member.isActive 
-                            ? 'bg-green-100 text-green-800' 
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${member.isActive
+                            ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
-                        }`}>
+                          }`}>
                           {member.isActive ? 'Active' : 'Blocked'}
                         </span>
                       </td>
@@ -453,18 +458,17 @@ const MembersManagement = () => {
                           >
                             View
                           </button>
-                          
+
                           {/* Block/Unblock Button */}
                           <button
                             onClick={() => {
                               setSelectedMember(member)
                               setShowBlockModal(true)
                             }}
-                            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                              member.isActive
+                            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${member.isActive
                                 ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
                                 : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                            }`}
+                              }`}
                             disabled={actionLoading}
                           >
                             {member.isActive ? 'Block' : 'Unblock'}
@@ -516,24 +520,23 @@ const MembersManagement = () => {
               >
                 Previous
               </button>
-              
+
               {/* Page Numbers */}
               <div className="flex gap-1">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
-                    className={`px-3 py-2 text-sm border rounded-md ${
-                      currentPage === page
+                    className={`px-3 py-2 text-sm border rounded-md ${currentPage === page
                         ? 'bg-sky-500 text-white border-sky-500'
                         : 'border-gray-300 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>
                 ))}
               </div>
-              
+
               {/* Next Button */}
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
@@ -559,7 +562,7 @@ const MembersManagement = () => {
                   {selectedMember.establishment?.name || 'New Member'} • {selectedMember.email}
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setShowStatusModal(false)
                   setSelectedMember(null)
@@ -572,7 +575,7 @@ const MembersManagement = () => {
                 </svg>
               </button>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin scrollbar-thumb-gray-200">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Left Side: Member Data (8 cols) */}
@@ -615,13 +618,13 @@ const MembersManagement = () => {
                       {selectedMember.establishment?.gstNumber && (
                         <div className="sm:col-span-2">
                           <p className="text-[10px] uppercase font-bold text-gray-400 mb-0.5">GST Number</p>
-                          <p className="text-sm font-semibold text-sky-700">{selectedMember.establishment.gstNumber}</p>
+                          <p className="text-sm font-semibold text-sky-700">{selectedMember.establishment?.gstNumber}</p>
                         </div>
                       )}
                       {selectedMember.establishment?.website && (
                         <div className="sm:col-span-3">
                           <p className="text-[10px] uppercase font-bold text-gray-400 mb-0.5">Website</p>
-                          <p className="text-sm font-semibold text-sky-600 truncate">{selectedMember.establishment.website}</p>
+                          <p className="text-sm font-semibold text-sky-600 truncate">{selectedMember.establishment?.website}</p>
                         </div>
                       )}
                     </div>
@@ -727,7 +730,7 @@ const MembersManagement = () => {
                             <p className={`text-[10px] font-bold uppercase ${isApproved ? 'text-green-600' : 'text-amber-600'}`}>
                               {isApproved ? 'Approved' : 'Pending'}
                             </p>
-                            {isApproved && (
+                            {isApproved && approval?.approvedAt && (
                               <p className="text-[9px] text-gray-400 mt-1">
                                 {new Date(approval.approvedAt).toLocaleDateString()}
                               </p>
@@ -745,9 +748,9 @@ const MembersManagement = () => {
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedMember.documents?.agencyAddressProof?.url && (
-                        <a 
-                          href={selectedMember.documents.agencyAddressProof.url} 
-                          target="_blank" 
+                        <a
+                          href={selectedMember.documents.agencyAddressProof.url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-sky-500 hover:text-sky-600 transition-all text-xs font-medium"
                         >
@@ -755,9 +758,9 @@ const MembersManagement = () => {
                         </a>
                       )}
                       {selectedMember.documents?.shopPhoto?.url && (
-                        <a 
-                          href={selectedMember.documents.shopPhoto.url} 
-                          target="_blank" 
+                        <a
+                          href={selectedMember.documents.shopPhoto.url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-sky-500 hover:text-sky-600 transition-all text-xs font-medium"
                         >
@@ -765,9 +768,9 @@ const MembersManagement = () => {
                         </a>
                       )}
                       {selectedMember.documents?.businessCard?.url && (
-                        <a 
-                          href={selectedMember.documents.businessCard.url} 
-                          target="_blank" 
+                        <a
+                          href={selectedMember.documents.businessCard.url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-sky-500 hover:text-sky-600 transition-all text-xs font-medium"
                         >
@@ -817,7 +820,7 @@ const MembersManagement = () => {
                       <h4 className="text-xs font-bold text-sky-900 uppercase tracking-widest mb-3">
                         Officer Action: {admin.user.role}
                       </h4>
-                      
+
                       <div className="space-y-3">
                         <div>
                           <label className="block text-[10px] font-bold text-sky-800 uppercase mb-1.5">
@@ -857,7 +860,7 @@ const MembersManagement = () => {
                     <h4 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-4">
                       Application Lifecycle
                     </h4>
-                    
+
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <label className="text-[10px] font-bold text-gray-500 uppercase">
@@ -919,7 +922,7 @@ const MembersManagement = () => {
                             {actionLoading ? 'Updating...' : 'Update Primary Status'}
                           </button>
                         )}
-                        
+
                         <button
                           onClick={() => {
                             setShowStatusModal(false)
@@ -961,7 +964,7 @@ const MembersManagement = () => {
                 {selectedMember.isActive ? 'Block' : 'Unblock'} Member
               </h3>
             </div>
-            
+
             <p className="text-sm text-gray-600 mb-6 leading-relaxed">
               Are you sure you want to <strong>{selectedMember.isActive ? 'block' : 'unblock'}</strong> {selectedMember.establishment?.name || 'this member'}?
               {selectedMember.isActive && ' This will temporarily disable their access to the platform.'}
@@ -980,11 +983,10 @@ const MembersManagement = () => {
               <button
                 onClick={() => handleBlockToggle(selectedMember)}
                 disabled={actionLoading}
-                className={`flex-1 sm:flex-none px-6 py-2 text-sm font-bold text-white rounded-lg shadow-lg transition-all disabled:opacity-50 ${
-                  selectedMember.isActive
+                className={`flex-1 sm:flex-none px-6 py-2 text-sm font-bold text-white rounded-lg shadow-lg transition-all disabled:opacity-50 ${selectedMember.isActive
                     ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-100'
                     : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'
-                }`}
+                  }`}
               >
                 {actionLoading ? 'Processing...' : selectedMember.isActive ? 'Confirm Block' : 'Confirm Unblock'}
               </button>
@@ -1002,7 +1004,7 @@ const MembersManagement = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </div>
-            
+
             <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Member?</h3>
             <p className="text-sm text-gray-500 mb-6">
               This action is permanent and will completely remove <strong>{selectedMember.establishment?.name || 'this member'}</strong> and all their data from the system.

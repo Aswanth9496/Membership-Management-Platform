@@ -152,23 +152,25 @@ const RegistrationOTP = require('../models/RegistrationOTP');
 const registerUser = async (body) => {
   const { email, member, referredBy } = body;
 
-  // 1. Mandatory Email Verification Check
-  const otpRecord = await RegistrationOTP.findOne({ email, isVerified: true });
-  if (!otpRecord) {
-    throw new ApiError(400, 'Email not verified. Please verify your email via OTP before submitting.');
-  }
+  
 
   await checkEmailExists(email);
+
+  // 1. Enforce Email Verification Status
+  const otpRecord = await RegistrationOTP.findOne({ email });
+  if (!otpRecord || !otpRecord.isVerified) {
+    throw new ApiError(400, 'Email verification is required before registration');
+  }
 
   if (member.mobile) {
     await checkMobileExists(member.mobile);
   }
 
   const userData = buildUserData(body);
+  userData.isEmailVerified = true; // Mark as verified since it passes the check above
   const referrer = await handleReferral(userData, referredBy);
 
-  const user = await User.create(userData);
-
+  const user = new User(userData);
   user.generateReferralCode();
   await user.save();
 

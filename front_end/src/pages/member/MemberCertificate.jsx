@@ -9,12 +9,12 @@ const MemberCertificate = () => {
   const [isDownloading, setIsDownloading] = useState(false)
   const { user } = useSelector(state => state.auth.member || {})
 
-  const [iframeToken, setIframeToken] = useState('')
+  const [pdfUrl, setPdfUrl] = useState('')
+  const [pdfError, setPdfError] = useState(false)
+
+  const isApproved = profile?.status === 'approved' || profile?.certificate?.generated
 
   useEffect(() => {
-    // Extract memberToken from cookies for iframe authentication
-    const match = document.cookie.match(/(^| )memberToken=([^;]+)/)
-    if (match) setIframeToken(match[2])
 
     const fetchProfile = async () => {
       try {
@@ -34,18 +34,38 @@ const MemberCertificate = () => {
     fetchProfile()
   }, [])
 
+  useEffect(() => {
+    if (isApproved) {
+      const loadPdf = async () => {
+        try {
+          const blob = await memberEndpoints.profileUpdates.getCertificateBlob(true)
+          const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+          setPdfUrl(url)
+        } catch (err) {
+          console.error("Failed to load PDF preview", err)
+          setPdfError(true)
+        }
+      }
+      loadPdf()
+    }
+  }, [isApproved])
+
   const handleDownload = async () => {
     try {
       setIsDownloading(true)
-      // Direct browser download for the PDF
-      const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/member/profile/certificate/download`
-      window.open(downloadUrl, '_blank')
+      const blob = await memberEndpoints.profileUpdates.getCertificateBlob(false)
+      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `Membership_Certificate_${profile?.member?.fullName?.replace(/\s+/g, '_') || 'Member'}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
     } catch (err) {
       console.error('Download error:', err)
       alert('Failed to download certificate. Please try again later.')
     } finally {
-      // Add a tiny delay so the UI doesn't visually flicker too quickly during local development
-      setTimeout(() => setIsDownloading(false), 800)
+      setIsDownloading(false)
     }
   }
 
@@ -56,8 +76,6 @@ const MemberCertificate = () => {
       </div>
     )
   }
-
-  const isApproved = profile?.status === 'approved' || profile?.certificate?.generated
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fadeUp">
@@ -90,15 +108,25 @@ const MemberCertificate = () => {
             <div className="bg-slate-900 rounded-[40px] p-1 shadow-2xl shadow-blue-900/20 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent opacity-50 pointer-events-none"></div>
               
-              {/* Live PDF Preview via IFrame */}
-              <div className="bg-white m-4 rounded-[32px] overflow-hidden min-h-[500px] border border-slate-200 relative">
-                 <iframe 
-                   src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/member/profile/certificate/download?preview=true&token=${iframeToken}#toolbar=0&navpanes=0&scrollbar=0`}
-                   className="w-full h-[600px] border-0"
-                   title="Membership Certificate Preview"
-                 />
+              {/* Live PDF Preview via Blob URL */}
+              <div className="bg-white m-4 rounded-[32px] overflow-hidden min-h-[500px] border border-slate-200 relative flex flex-col">
+                 {pdfUrl ? (
+                   <iframe 
+                     src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                     className="w-full h-[600px] border-0 flex-1"
+                     title="Membership Certificate Preview"
+                   />
+                 ) : pdfError ? (
+                   <div className="w-full h-[600px] flex items-center justify-center text-red-400 font-bold bg-slate-50">
+                     Failed to load PDF preview.
+                   </div>
+                 ) : (
+                   <div className="w-full h-[600px] flex items-center justify-center bg-slate-50">
+                     <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
+                   </div>
+                 )}
                  
-                 {/* Fallback overlay in case iframe fails to load or browser blocks it */}
+                 {/* Fallback overlay */}
                  <div className="absolute inset-0 pointer-events-none border-8 border-white rounded-[32px]"></div>
               </div>
             </div>

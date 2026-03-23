@@ -112,21 +112,33 @@ const eventSchema = new mongoose.Schema(
         ref: 'Admin',
         required: true,
       },
-      contactPerson: {
-        type: String,
-        required: [true, 'Contact person name is required'],
-        trim: true,
+      primary: {
+        name: {
+          type: String,
+          required: [true, 'Primary organizer name is required'],
+          trim: true,
+        },
+        email: {
+          type: String,
+          required: [true, 'Primary organizer email is required'],
+          trim: true,
+          lowercase: true,
+        },
+        phone: {
+          type: String,
+          required: [true, 'Primary organizer phone is required'],
+          trim: true,
+        },
       },
-      contactEmail: {
-        type: String,
-        required: [true, 'Contact email is required'],
-        trim: true,
-        lowercase: true,
+      secondary1: {
+        name: { type: String, trim: true },
+        email: { type: String, trim: true, lowercase: true },
+        phone: { type: String, trim: true },
       },
-      contactPhone: {
-        type: String,
-        required: [true, 'Contact phone is required'],
-        trim: true,
+      secondary2: {
+        name: { type: String, trim: true },
+        email: { type: String, trim: true, lowercase: true },
+        phone: { type: String, trim: true },
       },
     },
 

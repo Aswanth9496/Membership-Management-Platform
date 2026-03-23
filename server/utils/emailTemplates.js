@@ -208,10 +208,85 @@ const referenceRequestTemplate = (name, applicantName, agencyName) => {
   `;
 };
 
+// New Event Notification Template
+const eventNotificationTemplate = (memberName, eventData) => {
+  const { title, description, eventType, eventDate, venue, isPaid, price } = eventData;
+  
+  // Format dates and times safely
+  const startDate = new Date(eventDate.startDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const pricingText = isPaid ? `Registration Fee: ₹${price}` : 'Free Event';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; padding: 40px 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+        .header p { margin: 10px 0 0; opacity: 0.9; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; }
+        .content { padding: 40px 30px; }
+        .details-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 25px 0; border-left: 4px solid #0ea5e9; }
+        .detail-row { margin-bottom: 12px; display: flex; align-items: flex-start; }
+        .detail-label { font-weight: bold; color: #64748b; width: 100px; flex-shrink: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .detail-value { color: #0f172a; font-weight: 600; }
+        .cta-container { text-align: center; margin-top: 35px; }
+        .btn { display: inline-block; background: #0ea5e9; color: white; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px; transition: background 0.3s; }
+        .btn:hover { background: #0284c7; }
+        .footer { background: #f1f5f9; padding: 20px 30px; text-align: center; color: #64748b; font-size: 12px; border-top: 1px solid #e2e8f0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <p>Upcoming ${eventType}</p>
+          <h1>${title}</h1>
+        </div>
+        <div class="content">
+          <p style="font-size: 16px; color: #334155;">Hi <strong>${memberName}</strong>,</p>
+          <p style="font-size: 15px; color: #475569;">We are excited to announce a new event! As a valued member of techfinit, we would love to see you there.</p>
+          
+          <div class="details-box">
+            <div class="detail-row">
+              <span class="detail-label">Date:</span>
+              <span class="detail-value">${startDate}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Time:</span>
+              <span class="detail-value">${eventDate.startTime} - ${eventDate.endTime}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Venue:</span>
+              <span class="detail-value">${venue.name}, ${venue.city}</span>
+            </div>
+            <div class="detail-row" style="margin-bottom: 0;">
+              <span class="detail-label">Entry:</span>
+              <span class="detail-value" style="color: #059669;">${pricingText}</span>
+            </div>
+          </div>
+          
+          <p style="font-size: 15px; color: #475569; line-height: 1.8;">${description}</p>
+          
+          <div class="cta-container">
+            <a href="https://techfinit-membership.vercel.app/member/events" class="btn">View Event & Register</a>
+          </div>
+        </div>
+        <div class="footer">
+          <p>© 2024 techfinit. All rights reserved.</p>
+          <p>You received this email because you are a registered member of techfinit.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 module.exports = {
   forgotPasswordTemplate,
   emailVerificationTemplate,
   welcomeTemplate,
   passwordResetSuccessTemplate,
   referenceRequestTemplate,
+  eventNotificationTemplate,
 };

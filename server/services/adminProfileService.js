@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Admin = require('../models/Admin');
+const ProfileUpdateRequest = require('../models/ProfileUpdateRequest');
 const { sendEmail } = require('../utils/emailService');
 const ApiError = require('../utils/ApiError');
 
@@ -13,21 +14,28 @@ const getComparison = (current, requested) => {
       
       if (requestedObj[key] && typeof requestedObj[key] === 'object' && !Array.isArray(requestedObj[key]) && !(requestedObj[key] instanceof Date)) {
         // Nested object
-        if (!comparison[prefix || key]) {
-          comparison[prefix || key] = {};
+        if (!comparison[fullKey]) {
+          // Note: We don't necessarily need the parent key in comparison, 
+          // but we need to recurse with the fullKey prefix.
         }
-        processObject(currentObj?.[key] || {}, requestedObj[key], key);
+        processObject(currentObj?.[key] || {}, requestedObj[key], fullKey);
       } else {
         // Direct value
         const currentValue = currentObj?.[key];
         const requestedValue = requestedObj[key];
         const changed = JSON.stringify(currentValue) !== JSON.stringify(requestedValue);
         
-        if (!comparison[prefix]) {
-          comparison[prefix] = {};
+        // Use the section identifier (e.g., 'member', 'location') as the first level key 
+        // to match MODAL_SECTIONS logic in frontend
+        const parts = fullKey.split('.');
+        const section = parts[0];
+        const fieldPath = parts.slice(1).join('.');
+        
+        if (!comparison[section]) {
+          comparison[section] = {};
         }
         
-        comparison[prefix][key] = {
+        comparison[section][fieldPath || key] = {
           current: currentValue,
           requested: requestedValue,
           changed,
@@ -46,33 +54,26 @@ const getAllProfileChangeRequests = async (filters = {}, pagination = {}) => {
     const { status = 'pending', page = 1, limit = 10 } = { ...filters, ...pagination };
     const skip = (page - 1) * limit;
 
-    // Build query
-    const query = {};
-    
-    if (status === 'pending') {
-      query['profileChangeRequest.pending'] = true;
-      query['profileChangeRequest.status'] = 'pending';
-    } else if (status === 'approved' || status === 'rejected') {
-      query['profileChangeRequest.status'] = status;
-    }
+    // Build query on ProfileUpdateRequest collection
+    const query = { status };
 
     // Get total count
-    const totalRequests = await User.countDocuments(query);
+    const totalRequests = await ProfileUpdateRequest.countDocuments(query);
 
-    // Get requests with pagination
-    const requests = await User.find(query)
-      .select('_id email member.fullName member.mobile establishment.name membershipNumber status profileChangeRequest')
-      .sort({ 'profileChangeRequest.requestedAt': -1 })
+    // Get requests with pagination and populate user details
+    const requests = await ProfileUpdateRequest.find(query)
+      .populate('userId', 'email member.fullName member.mobile establishment.name membershipNumber status')
+      .sort({ requestedAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
     // Format response
-    const formattedRequests = requests.map(user => {
-      const pendingFor = user.profileChangeRequest?.requestedAt
-        ? Math.floor((new Date() - new Date(user.profileChangeRequest.requestedAt)) / (1000 * 60))
-        : 0;
-      
+    const formattedRequests = requests.map(update => {
+      const user = update.userId;
+      if (!user) return null;
+
+      const pendingFor = Math.floor((new Date() - new Date(update.requestedAt)) / (1000 * 60));
       const hours = Math.floor(pendingFor / 60);
       const minutes = pendingFor % 60;
 
@@ -80,21 +81,21 @@ const getAllProfileChangeRequests = async (filters = {}, pagination = {}) => {
       let totalChanges = 0;
       const changedFields = [];
       
-      if (user.profileChangeRequest?.requestedChanges) {
-        const flattenObject = (obj, prefix = '') => {
-          for (const key in obj) {
-            if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
-              flattenObject(obj[key], `${prefix}${key}.`);
-            } else if (key !== 'remarks') {
-              changedFields.push(`${prefix}${key}`);
-              totalChanges++;
-            }
+      const flattenChanges = (obj, prefix = '') => {
+        for (const key in obj) {
+          const fullPath = prefix ? `${prefix}.${key}` : key;
+          if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+            flattenChanges(obj[key], fullPath);
+          } else {
+            changedFields.push(fullPath);
+            totalChanges++;
           }
-        };
-        flattenObject(user.profileChangeRequest.requestedChanges);
-      }
+        }
+      };
+      flattenChanges(update.requestedData);
 
       return {
+        id: update._id,
         userId: user._id,
         memberDetails: {
           fullName: user.member?.fullName || 'N/A',
@@ -105,28 +106,22 @@ const getAllProfileChangeRequests = async (filters = {}, pagination = {}) => {
           status: user.status,
         },
         changeRequest: {
-          status: user.profileChangeRequest?.status || 'pending',
-          requestedAt: user.profileChangeRequest?.requestedAt,
+          status: update.status,
+          requestedAt: update.requestedAt,
           pendingFor: `${hours} hours ${minutes} minutes`,
           totalChanges,
           changedFields,
-          remarks: user.profileChangeRequest?.remarks,
         },
       };
-    });
+    }).filter(Boolean);
 
     // Calculate summary
-    const totalPending = await User.countDocuments({
-      'profileChangeRequest.pending': true,
-      'profileChangeRequest.status': 'pending',
-    });
-
+    const totalPending = await ProfileUpdateRequest.countDocuments({ status: 'pending' });
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const pendingToday = await User.countDocuments({
-      'profileChangeRequest.pending': true,
-      'profileChangeRequest.status': 'pending',
-      'profileChangeRequest.requestedAt': { $gte: today },
+    const pendingToday = await ProfileUpdateRequest.countDocuments({
+      status: 'pending',
+      requestedAt: { $gte: today },
     });
 
     return {
@@ -142,7 +137,6 @@ const getAllProfileChangeRequests = async (filters = {}, pagination = {}) => {
       summary: {
         totalPending,
         pendingToday,
-        avgReviewTime: '18 hours', // Can calculate from historical data
       },
     };
   } catch (error) {
@@ -152,36 +146,28 @@ const getAllProfileChangeRequests = async (filters = {}, pagination = {}) => {
 };
 
 // 2. Get Detailed Profile Change Request
-const getProfileChangeRequestDetails = async (userId) => {
+const getProfileChangeRequestDetails = async (updateId) => {
   try {
-    const user = await User.findById(userId).lean();
+    const update = await ProfileUpdateRequest.findById(updateId)
+      .populate('userId', 'email member location establishment partner staff membershipNumber status createdAt')
+      .lean();
     
-    if (!user) {
-      throw new ApiError(404, 'Member not found');
+    if (!update) {
+      throw new ApiError(404, 'Profile update request not found');
     }
 
-    const request = user.profileChangeRequest;
-    
-    if (!request || !request.requestedAt) {
-      throw new ApiError(404, 'No profile change request found for this member');
+    const user = update.userId;
+    if (!user) {
+      throw new ApiError(404, 'Member associated with this request not found');
     }
 
     // Calculate pending time
-    const pendingFor = Math.floor((new Date() - new Date(request.requestedAt)) / (1000 * 60));
+    const pendingFor = Math.floor((new Date() - new Date(update.requestedAt)) / (1000 * 60));
     const hours = Math.floor(pendingFor / 60);
     const minutes = pendingFor % 60;
 
-    // Get current profile
-    const currentProfile = {
-      member: user.member,
-      location: user.location,
-      establishment: user.establishment,
-      partner: user.partner,
-      staff: user.staff,
-    };
-
-    // Get comparison
-    const comparison = getComparison(currentProfile, request.requestedChanges || {});
+    // Get comparison using the correct fields from the separate collection
+    const comparison = getComparison(update.currentData, update.requestedData);
 
     // Get changed and unchanged fields
     const changedFields = [];
@@ -214,13 +200,13 @@ const getProfileChangeRequestDetails = async (userId) => {
         registeredOn: user.createdAt,
       },
       changeRequest: {
-        status: request.status,
-        requestedAt: request.requestedAt,
+        id: update._id,
+        status: update.status,
+        requestedAt: update.requestedAt,
         pendingFor: `${hours} hours ${minutes} minutes`,
-        remarks: request.remarks,
-        reviewedAt: request.reviewedAt,
-        reviewedBy: request.reviewedBy,
       },
+      currentData: update.currentData,
+      requestedData: update.requestedData,
       comparison,
       summary: {
         totalChanges: changedFields.length,
@@ -235,12 +221,22 @@ const getProfileChangeRequestDetails = async (userId) => {
 };
 
 // 3. Review Profile Change Request (Approve/Reject)
-const reviewProfileChangeRequest = async (userId, adminId, action, remarks) => {
+const reviewProfileChangeRequest = async (updateId, adminId, action, remarks) => {
   try {
+    // Find the update request
+    const update = await ProfileUpdateRequest.findById(updateId);
+    if (!update) {
+      throw new ApiError(404, 'Profile update request not found');
+    }
+
+    if (update.status !== 'pending') {
+      throw new ApiError(400, 'This request has already been processed');
+    }
+
     // Find member
-    const member = await User.findById(userId);
+    const member = await User.findById(update.userId);
     if (!member) {
-      throw new ApiError(404, 'Member not found');
+      throw new ApiError(404, 'Member associated with this request not found');
     }
 
     // Find admin
@@ -249,229 +245,121 @@ const reviewProfileChangeRequest = async (userId, adminId, action, remarks) => {
       throw new ApiError(404, 'Admin not found');
     }
 
-    const request = member.profileChangeRequest;
-
-    // Check if there's a pending request
-    if (!request || !request.pending || request.status !== 'pending') {
-      throw new ApiError(400, 'No pending profile change request found for this member');
-    }
-
     // Process based on action
     if (action === 'approve') {
-      // Apply changes to profile
-      const changes = request.requestedChanges;
+      // Apply changes to member profile
+      const changes = update.requestedData;
       
-      if (changes.member) {
-        Object.assign(member.member, changes.member);
-      }
-      if (changes.location) {
-        Object.assign(member.location, changes.location);
-      }
-      if (changes.establishment) {
-        Object.assign(member.establishment, changes.establishment);
-      }
-      if (changes.partner) {
-        Object.assign(member.partner, changes.partner);
-      }
-      if (changes.staff) {
-        Object.assign(member.staff, changes.staff);
-      }
-
-      // Update request status
-      member.profileChangeRequest = {
-        pending: false,
-        requestedChanges: request.requestedChanges,
-        requestedAt: request.requestedAt,
-        status: 'approved',
-        reviewedBy: {
-          adminId: admin._id,
-          adminRole: admin.role,
-          adminName: admin.fullName,
-        },
-        reviewedAt: new Date(),
-        rejectionReason: null,
-        remarks: remarks || 'Approved',
+      const deepMerge = (source, target) => {
+        for (const key in source) {
+          if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) && !(source[key] instanceof Date)) {
+            if (!target[key]) target[key] = {};
+            deepMerge(source[key], target[key]);
+          } else {
+            target[key] = source[key];
+          }
+        }
       };
+
+      deepMerge(changes, member);
+      
+      // Mark fields as modified for Mongoose to detect deep changes
+      if (changes.member) member.markModified('member');
+      if (changes.location) member.markModified('location');
+      if (changes.establishment) member.markModified('establishment');
+      if (changes.partner) member.markModified('partner');
+      if (changes.staff) member.markModified('staff');
+      if (changes.documents) member.markModified('documents');
 
       await member.save();
 
-      // Count applied changes
+      // Update request status
+      update.status = 'approved';
+      update.reviewedAt = new Date();
+      update.reviewedBy = admin._id;
+      // We can also store extra remarks in the model if we update the schema, 
+      // but for now let's just save.
+      await update.save();
+
+      // Count applied changes for email
       let totalChangesApplied = 0;
-      const changesApplied = {};
-      
-      const countChanges = (obj, prefix = '') => {
+      const flattenChanges = (obj) => {
         for (const key in obj) {
           if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
-            countChanges(obj[key], `${prefix}${key}.`);
+            flattenChanges(obj[key]);
           } else {
-            changesApplied[`${prefix}${key}`] = obj[key];
             totalChangesApplied++;
           }
         }
       };
-      
-      countChanges(changes);
+      flattenChanges(changes);
 
-      // Send approval email to member
+      // Send approval email
       const emailContent = `
         <!DOCTYPE html>
         <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .success { background: #4CAF50; color: white; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>✅ Profile Updated Successfully</h1>
-            </div>
-            <div class="content">
-              <div class="success">
-                <h2 style="margin: 0;">🎉 Your Profile Update Request Has Been Approved</h2>
-              </div>
-              <p>Hi <strong>${member.member?.fullName || 'Member'}</strong>,</p>
-              <p>Good news! Your profile update request has been approved by <strong>${admin.role}</strong>.</p>
-              <p><strong>Total Changes Applied:</strong> ${totalChangesApplied} field(s)</p>
-              <p><strong>Approved By:</strong> ${admin.fullName} (${admin.role})</p>
-              <p><strong>Approved At:</strong> ${new Date().toLocaleString()}</p>
-              ${remarks ? `<p><strong>Remarks:</strong> ${remarks}</p>` : ''}
-              <p>Your profile has been updated successfully. You can view your updated profile now.</p>
-            </div>
-            <div class="footer">
-              <p>© 2024 TechFinit. All rights reserved.</p>
-            </div>
-          </div>
+        <body style="font-family: Arial, sans-serif;">
+          <h2>Profile Update Approved</h2>
+          <p>Hi ${member.member?.fullName || 'Member'},</p>
+          <p>Good news! Your profile update request has been approved.</p>
+          <p><strong>Approved By:</strong> ${admin.fullName} (${admin.role})</p>
+          ${remarks ? `<p><strong>Remarks:</strong> ${remarks}</p>` : ''}
+          <p>Your profile has been synchronized successfully.</p>
         </body>
         </html>
       `;
 
       await sendEmail({
         to: member.email,
-        subject: '✅ Profile Updated Successfully - TechFinit',
+        subject: 'Profile Updated Successfully',
         html: emailContent,
       });
 
-      console.log(`✅ Profile update approved for member: ${member.email} by ${admin.role}`);
-
       return {
-        message: 'Profile update request approved successfully. Member profile has been updated.',
+        message: 'Profile update request approved and synchronized.',
         userId: member._id,
-        memberName: member.member?.fullName,
-        memberEmail: member.email,
         action: 'approved',
-        approvedBy: {
-          adminId: admin._id,
-          adminName: admin.fullName,
-          adminRole: admin.role,
-        },
-        approvedAt: new Date(),
-        remarks: remarks || 'Approved',
-        changesApplied,
-        totalChangesApplied,
-        emailNotification: 'Sent to member',
-        profileUpdated: true,
       };
+
     } else if (action === 'reject') {
-      // Reject the request
       if (!remarks) {
-        throw new ApiError(400, 'Rejection reason is required when rejecting a request');
+        throw new ApiError(400, 'Rejection reason is required');
       }
 
-      member.profileChangeRequest = {
-        pending: false,
-        requestedChanges: request.requestedChanges,
-        requestedAt: request.requestedAt,
-        status: 'rejected',
-        reviewedBy: {
-          adminId: admin._id,
-          adminRole: admin.role,
-          adminName: admin.fullName,
-        },
-        reviewedAt: new Date(),
-        rejectionReason: remarks,
-        remarks: remarks,
-      };
+      // Update request status
+      update.status = 'rejected';
+      update.rejectionReason = remarks;
+      update.reviewedAt = new Date();
+      update.reviewedBy = admin._id;
+      await update.save();
 
-      await member.save();
-
-      // Send rejection email to member
+      // Send rejection email
       const emailContent = `
         <!DOCTYPE html>
         <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .reject { background: #e74c3c; color: white; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; }
-            .reason { background: white; padding: 15px; border-left: 4px solid #e74c3c; margin: 15px 0; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>❌ Profile Update Request Rejected</h1>
-            </div>
-            <div class="content">
-              <div class="reject">
-                <h2 style="margin: 0;">Your Profile Update Request Has Been Rejected</h2>
-              </div>
-              <p>Hi <strong>${member.member?.fullName || 'Member'}</strong>,</p>
-              <p>Your profile update request has been reviewed and rejected by <strong>${admin.role}</strong>.</p>
-              
-              <div class="reason">
-                <h3>Rejection Reason:</h3>
-                <p>${remarks}</p>
-              </div>
-
-              <p><strong>Reviewed By:</strong> ${admin.fullName} (${admin.role})</p>
-              <p><strong>Reviewed At:</strong> ${new Date().toLocaleString()}</p>
-              
-              <p>You can submit a new profile update request with the correct information and required documents.</p>
-            </div>
-            <div class="footer">
-              <p>© 2024 TechFinit. All rights reserved.</p>
-            </div>
-          </div>
+        <body style="font-family: Arial, sans-serif;">
+          <h2>Profile Update Rejected</h2>
+          <p>Hi ${member.member?.fullName || 'Member'},</p>
+          <p>Your profile update request has been reviewed and rejected.</p>
+          <p><strong>Reason:</strong> ${remarks}</p>
+          <p><strong>Reviewed By:</strong> ${admin.fullName} (${admin.role})</p>
         </body>
         </html>
       `;
 
       await sendEmail({
         to: member.email,
-        subject: '❌ Profile Update Request Rejected - TechFinit',
+        subject: 'Profile Update Request Rejected',
         html: emailContent,
       });
 
-      console.log(`❌ Profile update rejected for member: ${member.email} by ${admin.role}`);
-
       return {
-        message: 'Profile update request rejected. Member has been notified with rejection reason.',
+        message: 'Profile update request rejected.',
         userId: member._id,
-        memberName: member.member?.fullName,
-        memberEmail: member.email,
         action: 'rejected',
-        rejectedBy: {
-          adminId: admin._id,
-          adminName: admin.fullName,
-          adminRole: admin.role,
-        },
-        rejectedAt: new Date(),
-        rejectionReason: remarks,
-        emailNotification: 'Sent to member',
-        profileUnchanged: true,
-        memberCanResubmit: true,
       };
     } else {
-      throw new ApiError(400, 'Invalid action. Must be either "approve" or "reject"');
+      throw new ApiError(400, 'Invalid action. Use "approve" or "reject"');
     }
   } catch (error) {
     console.error('Error reviewing profile change request:', error);

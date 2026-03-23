@@ -57,10 +57,12 @@ const getAllMembers = async (options = {}) => {
 
     // Search filter (name, email, membershipNumber)
     if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { membershipNumber: { $regex: search, $options: 'i' } }
+        { 'member.fullName': { $regex: escapedSearch, $options: 'i' } },
+        { 'establishment.name': { $regex: escapedSearch, $options: 'i' } },
+        { email: { $regex: escapedSearch, $options: 'i' } },
+        { membershipNumber: { $regex: escapedSearch, $options: 'i' } }
       ];
     }
 

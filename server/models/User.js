@@ -94,12 +94,12 @@ const userSchema = new mongoose.Schema(
     location: {
       state: {
         type: String,
-        required: [true, 'State is required'],
+       // required: [true, 'State is required'],
         trim: true,
       },
       district: {
         type: String,
-        required: [true, 'District is required'],
+        //required: [true, 'District is required'],
         trim: true,
       },
       region: {
@@ -196,11 +196,13 @@ const userSchema = new mongoose.Schema(
         publicId: String,
         uploadedAt: Date,
       },
-      shopPhoto: {
-        url: String,
-        publicId: String,
-        uploadedAt: Date,
-      },
+      shopPhoto: [
+        {
+          url: String,
+          publicId: String,
+          uploadedAt: Date,
+        }
+      ],
       businessCard: {
         url: String,
         publicId: String,
@@ -422,6 +424,9 @@ userSchema.index({ status: 1 });
 // Hash password before saving
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
+
+  // Skip if the password is already a bcrypt hash (e.g. pre-hashed in bulk import)
+  if (this.password && (this.password.startsWith('$2a$') || this.password.startsWith('$2b$'))) return;
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);

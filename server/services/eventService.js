@@ -1,5 +1,41 @@
 const Event = require('../models/Event');
+const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
+const { sendEmail } = require('../utils/emailService');
+const { eventNotificationTemplate } = require('../utils/emailTemplates');
+
+/**
+ * Helper to notify all approved members when a new event is created
+ */
+const notifyAllMembersAboutEvent = async (eventData) => {
+  try {
+    const approvedMembers = await User.find({ status: 'approved', isActive: true })
+      .select('email member.fullName');
+
+    if (!approvedMembers.length) {
+      console.log('No approved members found to notify about the event.');
+      return;
+    }
+
+    console.log(`Sending event notification to ${approvedMembers.length} members...`);
+
+    // Using a for...of loop to avoid overwhelming the SMTP server 
+    for (const user of approvedMembers) {
+      const memberName = user.member?.fullName || 'Member';
+      const emailHtml = eventNotificationTemplate(memberName, eventData);
+
+      await sendEmail({
+        to: user.email,
+        subject: `🎉 New Event Announced: ${eventData.title} - techfinit`,
+        html: emailHtml,
+      });
+    }
+
+    console.log(`✅ Finished sending event notifications.`);
+  } catch (error) {
+    console.error('Error in notifyAllMembersAboutEvent:', error);
+  }
+};
 
 // Create new event
 const createEvent = async (eventData, adminId) => {
@@ -74,9 +110,21 @@ const createEvent = async (eventData, adminId) => {
 
       organizer: {
         createdBy: adminId,
-        contactPerson: eventData.organizer.contactPerson,
-        contactEmail: eventData.organizer.contactEmail,
-        contactPhone: eventData.organizer.contactPhone,
+        primary: {
+          name: eventData.organizer.primary.name,
+          email: eventData.organizer.primary.email,
+          phone: eventData.organizer.primary.phone,
+        },
+        secondary1: {
+          name: eventData.organizer.secondary1?.name || '',
+          email: eventData.organizer.secondary1?.email || '',
+          phone: eventData.organizer.secondary1?.phone || '',
+        },
+        secondary2: {
+          name: eventData.organizer.secondary2?.name || '',
+          email: eventData.organizer.secondary2?.email || '',
+          phone: eventData.organizer.secondary2?.phone || '',
+        },
       },
 
       status: eventData.status || 'draft',
@@ -86,6 +134,9 @@ const createEvent = async (eventData, adminId) => {
     const savedEvent = await newEvent.save();
 
     console.log(`✅ Event created: ${savedEvent.title} by Admin ${adminId}`);
+
+    // Fire and forget notification
+    notifyAllMembersAboutEvent(savedEvent).catch(err => console.error("Event notification failed:", err));
 
     return savedEvent;
   } catch (error) {
@@ -208,9 +259,25 @@ const updateEvent = async (eventId, updateData) => {
 
     // Update organizer
     if (updateData.organizer) {
-      if (updateData.organizer.contactPerson) event.organizer.contactPerson = updateData.organizer.contactPerson;
-      if (updateData.organizer.contactEmail) event.organizer.contactEmail = updateData.organizer.contactEmail;
-      if (updateData.organizer.contactPhone) event.organizer.contactPhone = updateData.organizer.contactPhone;
+      if (updateData.organizer.primary) {
+        if (updateData.organizer.primary.name) event.organizer.primary.name = updateData.organizer.primary.name;
+        if (updateData.organizer.primary.email) event.organizer.primary.email = updateData.organizer.primary.email;
+        if (updateData.organizer.primary.phone) event.organizer.primary.phone = updateData.organizer.primary.phone;
+      }
+      if (updateData.organizer.secondary1) {
+        event.organizer.secondary1 = {
+          name: updateData.organizer.secondary1.name || '',
+          email: updateData.organizer.secondary1.email || '',
+          phone: updateData.organizer.secondary1.phone || '',
+        };
+      }
+      if (updateData.organizer.secondary2) {
+        event.organizer.secondary2 = {
+          name: updateData.organizer.secondary2.name || '',
+          email: updateData.organizer.secondary2.email || '',
+          phone: updateData.organizer.secondary2.phone || '',
+        };
+      }
     }
 
     // Update status
